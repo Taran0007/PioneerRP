@@ -19,7 +19,7 @@ export const FiveMStatusBar: React.FC<FiveMStatusBarProps> = ({ onNavigateToSqua
   };
 
   return (
-    <aside aria-label="Server status and connection details" className="w-full bg-neutral-950/95 border-b border-white/[0.08] text-xs font-mono select-none backdrop-blur-md sticky top-0 z-50">
+    <aside aria-label="Server status and connection details" className="w-full bg-neutral-950/95 border-b border-white/[0.08] text-xs font-mono select-none backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex flex-wrap items-center justify-between gap-3">
         {/* Left: Server Status & Dynamic Player Count */}
         <div className="flex items-center gap-3.5 flex-wrap">
@@ -54,7 +54,7 @@ export const FiveMStatusBar: React.FC<FiveMStatusBarProps> = ({ onNavigateToSqua
           {onNavigateToSquad && (
             <button
               onClick={onNavigateToSquad}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-950/70 hover:bg-purple-900/90 text-purple-300 hover:text-white border border-purple-500/30 text-[11px] font-bold tracking-wider transition-colors shadow-sm"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-950/70 hover:bg-purple-900/90 text-purple-300 hover:text-white border border-purple-500/30 text-[11px] font-bold tracking-wider transition-colors shadow-sm"
               title="Watch multiple Pioneer RP streamers at once"
             >
               <LayoutGrid className="h-3 w-3 text-purple-400" />
@@ -85,11 +85,12 @@ export const FiveMStatusBar: React.FC<FiveMStatusBarProps> = ({ onNavigateToSqua
           {/* Direct One-Click Launch */}
           <a
             href={fivemDeepLink}
+            aria-label="Join Pioneer RP server in FiveM"
             className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-neutral-950 font-bold text-[11px] transition-all shadow-md shadow-emerald-950/40"
             title="Launch FiveM and connect automatically"
           >
             <Radio className="h-3 w-3 text-neutral-950" />
-            <span>JOIN SERVER</span>
+            <span className="hidden sm:inline">JOIN SERVER</span>
           </a>
         </div>
       </div>

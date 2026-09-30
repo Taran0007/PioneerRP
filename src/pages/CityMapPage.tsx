@@ -144,7 +144,7 @@ export const CityMapPage: React.FC<CityMapPageProps> = ({
             <Compass className="h-3.5 w-3.5" />
             <span>Los Santos Roleplay Atlas</span>
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="max-w-full font-display text-2xl sm:text-4xl font-extrabold text-white tracking-tight text-balance break-words">
             INTERACTIVE CITY MAP & DISTRICTS
           </h1>
           <p className="text-sm text-neutral-400 mt-1 max-w-2xl">

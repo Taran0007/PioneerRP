@@ -17,9 +17,9 @@
       "enabled": true,
       "isPioneerStreamer": true,
       "createdAt": "2026-09-28T12:24:50.678Z",
-      "updatedAt": "2026-09-28T14:24:36.771Z",
+      "updatedAt": "2026-09-30T15:15:25.012Z",
       "platformUserId": "234975883",
-      "lastLiveAt": "2026-09-30T10:18:31.476Z"
+      "lastLiveAt": "2026-09-30T15:15:25.012Z"
     },
     {
       "id": "creator_apocalypticsith",
@@ -74,6 +74,41 @@
       "updatedAt": "2026-09-28T14:22:15.318Z",
       "platformUserId": "175126543",
       "lastLiveAt": "2026-09-28T19:48:31.476Z"
+    },
+    {
+      "id": "creator_1790781484452_rns53",
+      "slug": "tacticaldoll-x",
+      "displayName": "tacticaldoll_x",
+      "characterName": "Roxy",
+      "bio": "Purple 9 gang member",
+      "featured": false,
+      "featuredOrder": 999,
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-30T15:18:04.452Z",
+      "updatedAt": "2026-09-30T15:18:04.452Z",
+      "lastLiveAt": "2026-09-30T13:38:33.467Z"
+    },
+    {
+      "id": "creator_1790782412770_vuztm",
+      "slug": "whitewolfactual",
+      "displayName": "Russell Law",
+      "characterName": "Russell Law",
+      "gangName": "",
+      "bio": "",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/29554eda-32b4-4e26-9bb5-90a064c16415-profile_image-300x300.png",
+      "featured": true,
+      "featuredOrder": 11,
+      "creatorCode": "ALPHA",
+      "creatorCodeDescription": "",
+      "creatorStoreUrl": "https://pioneer-rp-18.tebex.io/",
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-30T15:33:32.770Z",
+      "updatedAt": "2026-09-30T15:33:32.770Z",
+      "lastLiveAt": "2026-09-30T10:08:33.467Z"
     }
   ],
   "platformAccounts": [
@@ -124,6 +159,29 @@
       "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/920e3f87-c41c-43d8-969c-81950ada2dbd-profile_image-300x300.png",
       "createdAt": "2026-09-28T12:24:50.678Z",
       "updatedAt": "2026-09-28T14:22:15.318Z"
+    },
+    {
+      "id": "plat_twitch_1790781484452",
+      "creatorId": "creator_1790781484452_rns53",
+      "platform": "TWITCH",
+      "platformUserId": "twitch_tacticaldoll_x",
+      "username": "tacticaldoll_x",
+      "displayName": "tacticaldoll_x",
+      "channelUrl": "https://twitch.tv/tacticaldoll_x",
+      "createdAt": "2026-09-30T15:18:04.452Z",
+      "updatedAt": "2026-09-30T15:18:04.452Z"
+    },
+    {
+      "id": "plat_twitch_1790782412770",
+      "creatorId": "creator_1790782412770_vuztm",
+      "platform": "TWITCH",
+      "platformUserId": "108073587",
+      "username": "whitewolfactual",
+      "displayName": "Russell Law",
+      "channelUrl": "https://twitch.tv/whitewolfactual",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/29554eda-32b4-4e26-9bb5-90a064c16415-profile_image-300x300.png",
+      "createdAt": "2026-09-30T15:33:32.770Z",
+      "updatedAt": "2026-09-30T15:33:32.770Z"
     }
   ],
   "liveStreams": [
@@ -193,6 +251,23 @@
       "createdAt": "2026-09-28T14:24:36.770Z",
       "updatedAt": "2026-09-28T14:24:36.770Z",
       "endedAt": "2026-09-28T14:24:36.770Z"
+    },
+    {
+      "id": "stream_1790781325012_q84i",
+      "creatorId": "creator_tjsingh007",
+      "platformAccountId": "plat_twitch_tj_singh007",
+      "platform": "TWITCH",
+      "platformStreamId": "stream_test_9999",
+      "title": "TEST LIVESTREAM PIONEER RP",
+      "category": "Grand Theft Auto V",
+      "viewerCount": 1540,
+      "thumbnailUrl": "https://example.com/thumb.jpg",
+      "startedAt": "2026-09-30T15:15:25.011Z",
+      "isLive": false,
+      "lastSeenAt": "2026-09-30T15:15:25.012Z",
+      "createdAt": "2026-09-30T15:15:25.012Z",
+      "updatedAt": "2026-09-30T15:15:25.012Z",
+      "endedAt": "2026-09-30T15:15:25.012Z"
     }
   ],
   "adminUsers": [
@@ -201,7 +276,7 @@
       "email": "Trnjeet@gmail.com",
       "username": "TJSINGH",
       "role": "superadmin",
-      "passwordHash": "$2b$10$lMNbdkRABbLnav3TQBzkWuPE0ace8XJPeyfhocHfwSN8iji16kMMW",
+      "passwordHash": "$2b$10$34beA3i5z0or6Z1UV0/EZeT7ntJl4O1zYkKtaj1gdyMvkMbw85aee",
       "createdAt": "2026-09-28T14:34:05.825Z",
       "updatedAt": "2026-09-28T14:34:05.825Z"
     },
@@ -230,7 +305,7 @@
     "heroSubheading": "The city is live. Watch the stories unfold.",
     "twitchClientId": "y25p37qpoy7xwsqh2rgu8gw1mpiinz",
     "twitchClientSecret": "jx94wa1dfpd6n9n8ggvcniqa8yftvz",
-    "lastSyncAt": "2026-09-30T14:57:46.011Z",
+    "lastSyncAt": "2026-09-30T16:37:29.600Z",
     "syncStatus": "success",
     "syncErrorMessage": "null",
     "twitchClientIdConfigured": "true"
@@ -280,6 +355,17 @@
       "approved": true,
       "featured": false,
       "createdAt": "2026-09-27T13:20:55.264Z"
+    }
+  ],
+  "streamerRequests": [
+    {
+      "id": "sreq_1790781454074_m9na",
+      "username": "tacticaldoll_x",
+      "characterName": "Roxy",
+      "faction": "SYNDICATE",
+      "bio": "Purple 9 gang member",
+      "status": "APPROVED",
+      "createdAt": "2026-09-30T15:17:34.075Z"
     }
   ],
   "analyticsEvents": [
@@ -381,9 +467,105 @@
         "slug": "tj-singh007"
       },
       "createdAt": "2026-09-30T14:07:03.971Z"
+    },
+    {
+      "id": "evt_1790781325013_qurj",
+      "eventType": "watch_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "test": true
+      },
+      "createdAt": "2026-09-30T15:15:25.013Z"
+    },
+    {
+      "id": "evt_1790781325013_jwq1",
+      "eventType": "creator_code_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "code": "INDIA"
+      },
+      "createdAt": "2026-09-30T15:15:25.013Z"
+    },
+    {
+      "id": "evt_1790784990766_9gl5",
+      "eventType": "profile_view",
+      "creatorId": "creator_apocalypticsith",
+      "metadata": {
+        "slug": "apocalypticsith"
+      },
+      "createdAt": "2026-09-30T16:16:30.766Z"
+    },
+    {
+      "id": "evt_1790784990769_7clc",
+      "eventType": "profile_view",
+      "creatorId": "creator_apocalypticsith",
+      "metadata": {
+        "slug": "apocalypticsith"
+      },
+      "createdAt": "2026-09-30T16:16:30.769Z"
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit_1790782881697_3dk0",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T15:41:21.697Z"
+    },
+    {
+      "id": "audit_1790782412770_wj43",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADD_STREAMER",
+      "entityType": "CREATOR",
+      "entityId": "creator_1790782412770_vuztm",
+      "metadata": {
+        "username": "whitewolfactual",
+        "displayName": "Russell Law"
+      },
+      "createdAt": "2026-09-30T15:33:32.770Z"
+    },
+    {
+      "id": "audit_1790781490119_lysi",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T15:18:10.119Z",
+        "success": true,
+        "totalMonitoredAccounts": 5,
+        "liveDetected": 0,
+        "offlineMarked": 0
+      },
+      "createdAt": "2026-09-30T15:18:10.119Z"
+    },
+    {
+      "id": "audit_1790781484452_uhii",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "APPROVE_STREAMER_REQUEST",
+      "entityType": "STREAMER_REQUEST",
+      "entityId": "sreq_1790781454074_m9na",
+      "metadata": {
+        "username": "tacticaldoll_x",
+        "status": "APPROVED"
+      },
+      "createdAt": "2026-09-30T15:18:04.452Z"
+    },
+    {
+      "id": "audit_1790781477969_osa6",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T15:17:57.969Z"
+    },
     {
       "id": "audit_1790780205503_ag9p",
       "adminId": "admin_tjsingh_01",

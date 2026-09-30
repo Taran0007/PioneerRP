@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, Users, Radio, Star, BarChart3, Settings, LogOut, Plus,
+  LayoutDashboard, Users, Radio, Star, BarChart3, Settings, LogOut, Plus, Menu,
   RefreshCw, Edit3, Trash2, Check, X, ExternalLink, Shield, AlertCircle,
   ArrowUp, ArrowDown, Eye, Copy, Tv, Search, CheckCircle2, History, UserPlus, UserCheck,
   Database, Download, Upload, FileText, Bell, Film, Network
@@ -21,6 +21,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateHome,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'streamers' | 'live' | 'featured' | 'admins' | 'analytics' | 'clips' | 'applications' | 'settings' | 'audit' | 'mindmap'>('overview');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeTab]);
 
   // Overview data
   const [overview, setOverview] = useState<any>(null);
@@ -592,7 +597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col md:flex-row">
+    <div className="min-h-dvh bg-neutral-950 text-neutral-100 flex flex-col md:flex-row">
       {/* Toast Notification */}
       {message && (
         <div
@@ -616,19 +621,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="h-8 w-8 rounded-lg bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-400">
                 <Shield className="h-4 w-4" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="font-display font-bold text-sm tracking-wider text-white">
                   ADMIN PORTAL
                 </span>
-                <div className="text-[10px] text-neutral-400">
+                <div className="max-w-[15rem] truncate text-[10px] text-neutral-400">
                   {adminUser?.email}
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(open => !open)}
+              aria-label={mobileNavOpen ? 'Close admin navigation' : 'Open admin navigation'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="admin-navigation"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-neutral-950 text-neutral-200 md:hidden"
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1">
+          <nav
+            id="admin-navigation"
+            className={`max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1 md:max-h-none md:overflow-visible ${mobileNavOpen ? 'block' : 'hidden md:block'}`}
+          >
             <button
               onClick={() => setActiveTab('overview')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
@@ -796,7 +814,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-white/[0.06] space-y-2 mt-6">
+        <div className={`pt-4 border-t border-white/[0.06] space-y-2 mt-6 ${mobileNavOpen ? 'block' : 'hidden md:block'}`}>
           <button
             onClick={onNavigateHome}
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-neutral-900 text-neutral-300 hover:text-white text-xs font-semibold transition-colors"
@@ -816,7 +834,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl">
         {/* Top Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-white/[0.08]">
           <div>

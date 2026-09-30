@@ -41,91 +41,76 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden border-b border-white/[0.08] min-h-[580px] lg:min-h-[640px] flex items-center justify-center">
-        {/* Background Image with Dark Vignette Scrim */}
+      <section className="relative flex min-h-[460px] items-center overflow-hidden border-b border-white/[0.08] lg:min-h-[520px]">
         <div className="absolute inset-0 z-0">
           <img
             src="/src/assets/images/pioneer_city_hero_1790597857284.jpg"
             alt="Pioneer RP City at Night"
-            className="h-full w-full object-cover object-center opacity-35 scale-105 transition-transform duration-1000"
+            className="h-full w-full object-cover object-center opacity-45"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/70 to-neutral-950/50" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-neutral-950" />
+          <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/75 to-neutral-950/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-neutral-950/20" />
         </div>
 
-        {/* Content Frame */}
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 lg:px-8 space-y-6">
-          {/* Ambient Live Ticker */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative group">
-              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-amber-500/50 via-purple-600/50 to-amber-500/50 blur-xl opacity-80 group-hover:opacity-100 transition duration-500"></div>
+        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-end gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.25fr)_minmax(15rem,0.75fr)] lg:px-8">
+          <div className="max-w-3xl">
+            <div className="mb-5 flex items-center gap-3">
               <img
                 src="/pioneer-logo.png"
-                alt="Pioneer RP Official Emblem"
-                className="relative h-24 w-24 sm:h-32 sm:w-32 object-contain drop-shadow-2xl mx-auto transform group-hover:scale-105 transition-transform duration-300"
+                alt="Pioneer RP emblem"
+                className="h-12 w-12 shrink-0 object-contain"
               />
+              <div>
+                <p className="text-sm font-semibold text-white">Pioneer RP</p>
+                <p className="text-xs text-neutral-300">Creator network</p>
+              </div>
             </div>
 
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-neutral-900/80 border border-purple-500/30 backdrop-blur-md text-xs font-semibold text-neutral-300">
-              {liveCreators.length > 0 ? (
-                <>
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                  </span>
-                  <span className="text-white font-mono font-bold">{liveCreators.length}</span>
-                  <span>PIONEER CREATOR{liveCreators.length > 1 ? 'S' : ''} BROADCASTING NOW</span>
-                </>
-              ) : (
-                <>
-                  <span className="h-2 w-2 rounded-full bg-purple-400" />
-                  <span>OFFICIAL PIONEER RP CREATOR HUB</span>
-                </>
-              )}
+            <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight text-white text-balance normal-case sm:text-5xl lg:text-6xl">
+              {headline}
+            </h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-neutral-200 text-balance sm:text-base">
+              {subheading}
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => {
+                  const el = document.getElementById('live-now-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else onNavigate('/live');
+                }}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-amber-300 px-6 py-3 text-sm font-bold text-neutral-950 transition-colors hover:bg-amber-200 sm:w-auto"
+              >
+                <Radio className="h-4 w-4" />
+                <span>Watch live</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('/streamers')}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-neutral-950/70 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 sm:w-auto"
+              >
+                <Users className="h-4 w-4" />
+                <span>Browse streamers</span>
+              </button>
             </div>
           </div>
 
-          {/* Cinematic Headline */}
-          <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white uppercase text-balance max-w-4xl mx-auto leading-none drop-shadow-md">
-            {headline}
-          </h1>
-
-          {/* Subheading */}
-          <p className="mx-auto max-w-2xl text-base sm:text-xl text-neutral-300 font-normal leading-relaxed text-balance">
-            {subheading}
-          </p>
-
-          {/* Hero CTAs */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => {
-                const el = document.getElementById('live-now-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                else onNavigate('/live');
-              }}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-purple-600/30 transition-all transform hover:-translate-y-0.5"
-            >
-              <Radio className="h-4 w-4" />
-              <span>WATCH LIVE</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('/streamers')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 hover:text-white font-bold text-sm tracking-wide border border-white/10 transition-all"
-            >
-              <Users className="h-4 w-4" />
-              <span>EXPLORE STREAMERS</span>
-            </button>
+          <div className="flex items-center gap-5 border-t border-white/20 pt-5 lg:ml-auto lg:block lg:max-w-xs lg:border-l lg:border-t-0 lg:pb-1 lg:pl-6 lg:pt-0">
+            <div className="font-display text-5xl font-bold leading-none tabular-nums text-white sm:text-6xl">
+              {liveCreators.length}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">
+                {liveCreators.length === 1 ? 'Creator live now' : 'Creators live now'}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-neutral-300">
+                {allCreators.length} Pioneer RP creators on Twitch
+              </p>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* 3D Scrolling Marquee of all Streamers (Visible whether someone is live or offline) */}
-      <Streamer3DMarquee
-        creators={allCreators}
-        onNavigateToProfile={onNavigateToProfile}
-        onNavigate={onNavigate}
-      />
 
       {/* 2. LIVE NOW SECTION (Primary functional section) */}
       <section id="live-now-section" className="py-14 sm:py-18 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
@@ -213,6 +198,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         )}
       </section>
+
+      <Streamer3DMarquee
+        creators={allCreators}
+        onNavigateToProfile={onNavigateToProfile}
+        onNavigate={onNavigate}
+      />
 
       {/* 3. FEATURED CREATORS SECTION */}
       {primaryFeatured && (

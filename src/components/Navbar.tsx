@@ -45,10 +45,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-neutral-950/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-2.5 sm:px-6 lg:px-8">
         {/* Zone 1: Wordmark */}
         <div className="flex items-center gap-3">
-          <button
+          <a
+            href="/"
             onClick={() => handleLinkClick('/')}
             className="flex items-center gap-2.5 text-left focus:outline-none group"
             aria-label="Pioneer RP Live Home"
@@ -67,16 +68,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               PIONEER<span className="text-amber-400">RP</span>
               <span className="ml-1 text-xs tracking-widest text-neutral-400 font-sans font-semibold">LIVE</span>
             </span>
-          </button>
+          </a>
         </div>
 
         {/* Zone 2: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider text-neutral-300">
+        <nav className="hidden 2xl:flex items-center gap-3 text-[11px] font-semibold tracking-wide text-neutral-300">
           {navLinks.map(link => {
             const isActive = currentPath === link.path;
             return (
-              <button
+              <a
                 key={link.path}
+                href={link.path}
                 onClick={() => handleLinkClick(link.path)}
                 className={`relative py-1 transition-colors flex items-center gap-1.5 focus:outline-none ${
                   isActive ? 'text-white' : 'text-neutral-400 hover:text-white'
@@ -91,13 +93,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {isActive && (
                   <span className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-purple-500 rounded-full" />
                 )}
-              </button>
+              </a>
             );
           })}
         </nav>
 
         {/* Zone 3: Actions */}
-        <div className="hidden lg:flex items-center gap-2.5">
+        <div className="hidden 2xl:flex items-center gap-2">
           {/* Theme Switcher Button */}
           <button
             onClick={cycleTheme}
@@ -109,7 +111,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {adminUser && (
-            <button
+            <a
+              href="/admin"
               onClick={() => handleLinkClick('/admin')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border ${
                 currentPath.startsWith('/admin')
@@ -119,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Shield className="h-3.5 w-3.5 text-purple-400" />
               <span>Admin</span>
-            </button>
+            </a>
           )}
 
           {onOpenJoinModal && (
@@ -152,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex 2xl:hidden items-center gap-2">
           {liveCount > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-red-400 bg-red-950/40 border border-red-500/30 rounded-md">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
@@ -171,13 +174,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-neutral-800 bg-neutral-950/95 px-4 pt-3 pb-6 space-y-3">
+        <div className="2xl:hidden border-b border-neutral-800 bg-neutral-950/95 px-4 pt-3 pb-6 space-y-3">
           <div className="grid gap-1">
             {navLinks.map(link => {
               const isActive = currentPath === link.path;
               return (
-                <button
+                <a
                   key={link.path}
+                  href={link.path}
                   onClick={() => handleLinkClick(link.path)}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold tracking-wide text-left ${
                     isActive ? 'bg-purple-900/20 text-purple-300' : 'text-neutral-300 hover:bg-neutral-900'
@@ -189,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {link.badge}
                     </span>
                   )}
-                </button>
+                </a>
               );
             })}
           </div>
@@ -212,20 +216,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
             {adminUser ? (
-              <button
+              <a
+                href="/admin"
                 onClick={() => handleLinkClick('/admin')}
                 className="flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg bg-neutral-900 text-purple-300 border border-purple-900"
               >
                 <Shield className="h-3.5 w-3.5" />
                 <span>Admin Dashboard</span>
-              </button>
+              </a>
             ) : (
-              <button
+              <a
+                href="/admin/login"
                 onClick={() => handleLinkClick('/admin/login')}
                 className="text-center py-2 text-xs text-neutral-500 hover:text-neutral-400"
               >
                 Admin Access
-              </button>
+              </a>
             )}
           </div>
         </div>

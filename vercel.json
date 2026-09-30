@@ -9,8 +9,97 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/robots.txt",
+      "destination": "/api/robots.ts"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap.ts"
+    },
+    {
+      "source": "/",
+      "destination": "/api/page.ts?path=/"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/api/page.ts?path=/admin/login"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/page.ts?path=/admin"
+    },
+    {
+      "source": "/streamer/:slug",
+      "destination": "/api/page.ts?path=/streamer/:slug"
+    },
+    {
+      "source": "/streamers/:slug",
+      "destination": "/api/page.ts?path=/streamers/:slug"
+    },
+    {
+      "source": "/live",
+      "destination": "/api/page.ts?path=/live"
+    },
+    {
+      "source": "/streamers",
+      "destination": "/api/page.ts?path=/streamers"
+    },
+    {
+      "source": "/featured",
+      "destination": "/api/page.ts?path=/featured"
+    },
+    {
+      "source": "/vods",
+      "destination": "/api/page.ts?path=/vods"
+    },
+    {
+      "source": "/past-broadcasts",
+      "destination": "/api/page.ts?path=/past-broadcasts"
+    },
+    {
+      "source": "/squad",
+      "destination": "/api/page.ts?path=/squad"
+    },
+    {
+      "source": "/squad-stream",
+      "destination": "/api/page.ts?path=/squad-stream"
+    },
+    {
+      "source": "/map",
+      "destination": "/api/page.ts?path=/map"
+    },
+    {
+      "source": "/city-map",
+      "destination": "/api/page.ts?path=/city-map"
+    },
+    {
+      "source": "/clips",
+      "destination": "/api/page.ts?path=/clips"
+    },
+    {
+      "source": "/highlights",
+      "destination": "/api/page.ts?path=/highlights"
+    },
+    {
+      "source": "/events",
+      "destination": "/api/page.ts?path=/events"
+    },
+    {
+      "source": "/schedule",
+      "destination": "/api/page.ts?path=/schedule"
+    },
+    {
+      "source": "/about",
+      "destination": "/api/page.ts?path=/about"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/page.ts": {
+      "includeFiles": "dist/index.html"
+    }
+  }
 }

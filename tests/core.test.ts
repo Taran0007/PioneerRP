@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { db } from '../server/db/database.js';
 import { twitchService } from '../server/services/twitchService.js';
 import { syncService } from '../server/services/syncService.js';
+import type { Creator } from '../src/types/index.js';
+import { buildRobotsTxt, buildSitemapXml, getPageSeo, injectSeoHead } from '../src/seo.js';
 
 describe('Pioneer RP Live Core Architecture & Data Suite', () => {
   before(async () => {
@@ -133,5 +135,49 @@ describe('Pioneer RP Live Core Architecture & Data Suite', () => {
     const testCreator = creators[0];
     const history = await db.getRecentStreamHistory(testCreator.id);
     assert.ok(Array.isArray(history), 'Stream history must return an array');
+  });
+});
+
+describe('Pioneer RP Live SEO metadata', () => {
+  test('uses route-specific titles and canonicalizes legacy aliases', () => {
+    const liveSeo = getPageSeo('/live', 'https://pioneerrp.example');
+    const aliasSeo = getPageSeo('/past-broadcasts', 'https://pioneerrp.example');
+
+    assert.equal(liveSeo.title, 'Live Pioneer RP Streams | Twitch Creators');
+    assert.equal(liveSeo.canonicalUrl, 'https://pioneerrp.example/live');
+    assert.equal(aliasSeo.canonicalPath, '/vods');
+    assert.equal(aliasSeo.canonicalUrl, 'https://pioneerrp.example/vods');
+  });
+
+  test('marks administration pages as non-indexable', () => {
+    const adminSeo = getPageSeo('/admin/login', 'https://pioneerrp.example');
+
+    assert.equal(adminSeo.robots, 'noindex, nofollow');
+    assert.equal(adminSeo.canonicalUrl, 'https://pioneerrp.example/admin/login');
+  });
+
+  test('builds crawl files using enabled public creators only', () => {
+    const creators = [
+      { slug: 'creator-one', displayName: 'Creator One', enabled: true },
+      { slug: 'creator-two', displayName: 'Creator Two', enabled: false },
+    ] as Creator[];
+    const sitemap = buildSitemapXml('https://pioneerrp.example', creators);
+    const robots = buildRobotsTxt('https://pioneerrp.example');
+
+    assert.match(sitemap, /https:\/\/pioneerrp\.example\/streamer\/creator-one/);
+    assert.doesNotMatch(sitemap, /creator-two/);
+    assert.match(robots, /Disallow: \/admin/);
+    assert.match(robots, /Sitemap: https:\/\/pioneerrp\.example\/sitemap\.xml/);
+  });
+
+  test('injects crawler-visible metadata into the server HTML template', () => {
+    const seo = getPageSeo('/live', 'https://pioneerrp.example');
+    const template = '<html><head><!-- PIONEERRP_SEO_START --><title>Old</title><!-- PIONEERRP_SEO_END --></head></html>';
+    const html = injectSeoHead(template, seo);
+
+    assert.match(html, /<title>Live Pioneer RP Streams \| Twitch Creators<\/title>/);
+    assert.match(html, /<link rel="canonical" href="https:\/\/pioneerrp\.example\/live"/);
+    assert.match(html, /application\/ld\+json/);
+    assert.doesNotMatch(html, /PIONEERRP_SEO_START/);
   });
 });

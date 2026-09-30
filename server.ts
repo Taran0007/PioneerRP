@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import apiRouter from './server/routes/api.js';
 import { db } from './server/db/database.js';
 import { syncService } from './server/services/syncService.js';
+import { buildRobotsTxt, buildSitemapXml, getPageSeo, injectSeoHead } from './src/seo.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,29 @@ async function startServer() {
   // Initialize Database
   console.log('[Server] Initializing database...');
   await db.init();
+
+  const getRequestOrigin = (req: express.Request) =>
+    process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+
+  const getRequestSeo = async (url: string, origin: string) => {
+    const pathname = new URL(url, origin).pathname;
+    const profileMatch = pathname.match(/^\/(?:streamer|streamers)\/([^/]+)/);
+    const creator = profileMatch ? await db.getCreatorBySlug(decodeURIComponent(profileMatch[1])) : null;
+    return getPageSeo(pathname, origin, creator ? [creator] : []);
+  };
+
+  app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').send(buildRobotsTxt(getRequestOrigin(req)));
+  });
+
+  app.get('/sitemap.xml', async (req, res, next) => {
+    try {
+      const creators = await db.getCreators({ enabledOnly: true });
+      res.type('application/xml').send(buildSitemapXml(getRequestOrigin(req), creators));
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // Initialize Stream Sync Service
   console.log('[Server] Starting Twitch Stream Sync Service...');
@@ -56,6 +80,8 @@ async function startServer() {
         const indexPath = path.resolve(__dirname, 'index.html');
         let template = fs.readFileSync(indexPath, 'utf-8');
         template = await vite.transformIndexHtml(url, template);
+        const origin = getRequestOrigin(req);
+        template = injectSeoHead(template, await getRequestSeo(url, origin));
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e: any) {
         vite.ssrFixStacktrace(e);
@@ -63,17 +89,30 @@ async function startServer() {
       }
     });
   } else {
-    // Production mode: Serve built static client files
-    const distPath = path.resolve(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      const indexPath = path.join(distPath, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send('Application build not found. Please run npm run build.');
+    // Production mode: Serve built static client files.
+    // When bundled to dist/server.js, __dirname is already the dist folder; when
+    // run from source it is the project root, so resolve both layouts safely.
+    const distPath = fs.existsSync(path.join(__dirname, 'dist', 'index.html'))
+      ? path.resolve(__dirname, 'dist')
+      : __dirname;
+    const renderPage = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) {
+          res.status(404).send('Application build not found. Please run npm run build.');
+          return;
+        }
+        const origin = getRequestOrigin(req);
+        const template = fs.readFileSync(indexPath, 'utf-8');
+        const html = injectSeoHead(template, await getRequestSeo(req.originalUrl, origin));
+        res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+      } catch (error) {
+        next(error);
       }
-    });
+    };
+    app.get('/', renderPage);
+    app.use(express.static(distPath));
+    app.get('*', renderPage);
   }
 
   app.listen(PORT, () => {

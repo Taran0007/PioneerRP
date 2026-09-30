@@ -45,44 +45,49 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
             </div>
             <ul className="space-y-2 text-xs">
               <li>
-                <button
-                  onClick={() => onNavigate('/')}
+                <a
+                  href="/"
+                  onClick={event => { event.preventDefault(); onNavigate('/'); }}
                   className="hover:text-white transition-colors"
                 >
                   Home
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('/live')}
+                <a
+                  href="/live"
+                  onClick={event => { event.preventDefault(); onNavigate('/live'); }}
                   className="hover:text-white transition-colors"
                 >
                   Live Now
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('/streamers')}
+                <a
+                  href="/streamers"
+                  onClick={event => { event.preventDefault(); onNavigate('/streamers'); }}
                   className="hover:text-white transition-colors"
                 >
                   All Streamers
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('/featured')}
+                <a
+                  href="/featured"
+                  onClick={event => { event.preventDefault(); onNavigate('/featured'); }}
                   className="hover:text-white transition-colors"
                 >
                   Featured Creators
-                </button>
+                </a>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('/about')}
+                <a
+                  href="/about"
+                  onClick={event => { event.preventDefault(); onNavigate('/about'); }}
                   className="hover:text-white transition-colors"
                 >
                   About Hub
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -116,13 +121,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
                 </a>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('/admin')}
+                <a
+                  href="/admin"
+                  onClick={event => { event.preventDefault(); onNavigate('/admin'); }}
                   className="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-300 transition-colors pt-2"
                 >
                   <Shield className="h-3 w-3" />
                   <span>Admin Portal</span>
-                </button>
+                </a>
               </li>
             </ul>
           </div>

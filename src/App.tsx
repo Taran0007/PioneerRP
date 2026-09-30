@@ -18,6 +18,7 @@ import { FiveMStatusBar } from './components/FiveMStatusBar.js';
 import { AdminDashboard } from './pages/admin/AdminDashboard.js';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.js';
 import { JoinStreamerModal } from './components/JoinStreamerModal.js';
+import { SeoMetadata } from './components/SeoMetadata.js';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
@@ -282,6 +283,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-950 font-sans selection:bg-purple-600 selection:text-white">
+      <SeoMetadata path={currentPath} creators={allCreators} />
       {!isAdminView && (
         <>
           <FiveMStatusBar onNavigateToSquad={() => navigate('/squad')} />

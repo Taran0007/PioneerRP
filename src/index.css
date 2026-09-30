@@ -11,6 +11,18 @@
     font-family: var(--font-body);
     background-color: #08080a;
     color: #f3f4f6;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
+  }
+
+  button, a, [role="button"] {
+    touch-action: manipulation;
   }
 
   h1, h2, h3, .font-display {
@@ -73,5 +85,24 @@
 .animate-marquee {
   animation: marquee 40s linear infinite;
   will-change: transform;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
