@@ -760,6 +760,8 @@ class DatabaseManager {
   // --- SETTINGS ---
   getSettings(): SiteSettings {
     const s = this.memoryDb.settings;
+    const clientId = s.twitchClientId || DEFAULT_SETTINGS.twitchClientId || '';
+    const clientSecret = s.twitchClientSecret || DEFAULT_SETTINGS.twitchClientSecret || '';
     return {
       siteName: s.siteName || DEFAULT_SETTINGS.siteName,
       siteTagline: s.siteTagline || DEFAULT_SETTINGS.siteTagline,
@@ -773,7 +775,9 @@ class DatabaseManager {
       seoDescription: s.seoDescription || DEFAULT_SETTINGS.seoDescription,
       heroHeadline: s.heroHeadline || DEFAULT_SETTINGS.heroHeadline,
       heroSubheading: s.heroSubheading || DEFAULT_SETTINGS.heroSubheading,
-      twitchClientIdConfigured: !!(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET),
+      twitchClientId: clientId,
+      twitchClientSecret: clientSecret ? '••••••••••••••••' : '',
+      twitchClientIdConfigured: !!(clientId && clientSecret),
       lastSyncAt: s.lastSyncAt || null,
       syncStatus: (s.syncStatus as any) || 'idle',
       syncErrorMessage: s.syncErrorMessage || null,
@@ -783,6 +787,9 @@ class DatabaseManager {
   updateSettings(updates: Partial<SiteSettings>): SiteSettings {
     for (const [k, v] of Object.entries(updates)) {
       if (v !== undefined) {
+        if (k === 'twitchClientSecret' && (v === '••••••••••••••••' || !v)) {
+          continue;
+        }
         this.memoryDb.settings[k] = String(v);
       }
     }

@@ -201,7 +201,7 @@
       "email": "Trnjeet@gmail.com",
       "username": "TJSINGH",
       "role": "superadmin",
-      "passwordHash": "$2b$10$a2GzS7C.4zPn3WeyGrxFy.eZ/fl2mkf8h/2mdng2sfZ7dsZnd40Re",
+      "passwordHash": "$2b$10$gnD6FHoO7kmc1pfqe7ksTehpDJj2XCS/nuivheg/WhuNtd65U99Ku",
       "createdAt": "2026-09-28T14:34:05.825Z",
       "updatedAt": "2026-09-28T14:34:05.825Z"
     },
@@ -229,10 +229,11 @@
     "heroHeadline": "PIONEER RP LIVE",
     "heroSubheading": "The city is live. Watch the stories unfold.",
     "twitchClientId": "y25p37qpoy7xwsqh2rgu8gw1mpiinz",
-    "twitchClientSecret": "2bn0vr76fvlzp42zsaum04cjameuh7",
-    "lastSyncAt": "2026-09-30T13:29:15.390Z",
-    "syncStatus": "error",
-    "syncErrorMessage": "Failed to obtain Twitch App Access Token: 403 {\"status\":403,\"message\":\"invalid client secret\"}\n"
+    "twitchClientSecret": "jx94wa1dfpd6n9n8ggvcniqa8yftvz",
+    "lastSyncAt": "2026-09-30T14:45:32.035Z",
+    "syncStatus": "success",
+    "syncErrorMessage": "null",
+    "twitchClientIdConfigured": "true"
   },
   "clips": [
     {
@@ -362,9 +363,131 @@
         "code": "INDIA"
       },
       "createdAt": "2026-09-28T14:25:24.837Z"
+    },
+    {
+      "id": "evt_1790777223848_ornj",
+      "eventType": "profile_view",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "slug": "tj-singh007"
+      },
+      "createdAt": "2026-09-30T14:07:03.848Z"
+    },
+    {
+      "id": "evt_1790777223971_z6hr",
+      "eventType": "profile_view",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "slug": "tj-singh007"
+      },
+      "createdAt": "2026-09-30T14:07:03.971Z"
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit_1790778810421_xcxz",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T14:33:30.421Z",
+        "success": true,
+        "totalMonitoredAccounts": 4,
+        "liveDetected": 0,
+        "offlineMarked": 0
+      },
+      "createdAt": "2026-09-30T14:33:30.421Z"
+    },
+    {
+      "id": "audit_1790777647994_qy5t",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T14:14:07.994Z",
+        "success": true,
+        "totalMonitoredAccounts": 4,
+        "liveDetected": 0,
+        "offlineMarked": 0
+      },
+      "createdAt": "2026-09-30T14:14:07.994Z"
+    },
+    {
+      "id": "audit_1790777643053_rbl0",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "UPDATE_SETTINGS",
+      "entityType": "SETTINGS",
+      "entityId": "global",
+      "metadata": {
+        "siteName": "Pioneer RP Live",
+        "siteTagline": "The city is live. Watch the stories unfold.",
+        "discordUrl": "https://discord.gg/pioneerrp",
+        "storeUrl": "https://pioneer-rp-18.tebex.io/",
+        "serverJoinUrl": "fivem://connect/cfx.re/join/pioneer-rp",
+        "serverStatusApiUrl": "",
+        "twitchPollingIntervalSeconds": 45,
+        "liveRefreshIntervalSeconds": 30,
+        "seoTitle": "Pioneer RP Live — Watch Pioneer RP Streamers",
+        "seoDescription": "The official streaming and creator hub for Pioneer RP. Real-time Twitch stream monitoring, featured creators, creator codes, and FiveM community directory.",
+        "heroHeadline": "PIONEER RP LIVE",
+        "heroSubheading": "The city is live. Watch the stories unfold.",
+        "twitchClientIdConfigured": true,
+        "lastSyncAt": "2026-09-30T14:12:06.560Z",
+        "syncStatus": "error",
+        "syncErrorMessage": "Failed to obtain Twitch App Access Token: 403 {\"status\":403,\"message\":\"invalid client secret\"}\n",
+        "twitchClientId": "y25p37qpoy7xwsqh2rgu8gw1mpiinz",
+        "twitchClientSecret": "jx94wa1dfpd6n9n8ggvcniqa8yftvz"
+      },
+      "createdAt": "2026-09-30T14:14:03.053Z"
+    },
+    {
+      "id": "audit_1790777526560_m61a",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T14:12:06.560Z",
+        "success": false,
+        "totalMonitoredAccounts": 0,
+        "liveDetected": 0,
+        "offlineMarked": 0,
+        "error": "Failed to obtain Twitch App Access Token: 403 {\"status\":403,\"message\":\"invalid client secret\"}\n"
+      },
+      "createdAt": "2026-09-30T14:12:06.560Z"
+    },
+    {
+      "id": "audit_1790777461414_o44x",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T14:11:01.414Z",
+        "success": false,
+        "totalMonitoredAccounts": 0,
+        "liveDetected": 0,
+        "offlineMarked": 0,
+        "error": "Failed to obtain Twitch App Access Token: 403 {\"status\":403,\"message\":\"invalid client secret\"}\n"
+      },
+      "createdAt": "2026-09-30T14:11:01.414Z"
+    },
+    {
+      "id": "audit_1790777455961_tccb",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T14:10:55.961Z"
+    },
     {
       "id": "audit_1790774963439_napl",
       "adminId": "admin_tjsingh_01",

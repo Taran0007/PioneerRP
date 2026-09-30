@@ -33,18 +33,18 @@ export class TwitchService {
   constructor() {
     this.clientId = process.env.TWITCH_CLIENT_ID || '';
     this.clientSecret = process.env.TWITCH_CLIENT_SECRET || '';
+    this.syncWithDb();
   }
 
   syncWithDb() {
     try {
-      // Lazy load to avoid circular dependencies
       import('../db/database.js').then(({ db }) => {
-        const settings = db.getSettings() as any;
-        if (settings.twitchClientId && (!this.clientId || this.clientId !== settings.twitchClientId)) {
-          this.clientId = settings.twitchClientId.trim();
+        const rawSettings = (db as any).memoryDb?.settings || {};
+        if (rawSettings.twitchClientId) {
+          this.clientId = rawSettings.twitchClientId.trim();
         }
-        if (settings.twitchClientSecret && (!this.clientSecret || this.clientSecret !== settings.twitchClientSecret)) {
-          this.clientSecret = settings.twitchClientSecret.trim();
+        if (rawSettings.twitchClientSecret && rawSettings.twitchClientSecret !== '••••••••••••••••') {
+          this.clientSecret = rawSettings.twitchClientSecret.trim();
         }
       }).catch(() => {});
     } catch {}
