@@ -14,6 +14,7 @@ export const StreamersPage: React.FC<StreamersPageProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'live' | 'offline' | 'featured'>('all');
+  const [factionFilter, setFactionFilter] = useState<'all' | 'POLICE' | 'EMS' | 'DOJ' | 'SYNDICATE' | 'CIVILIAN'>('all');
   const [platform, setPlatform] = useState<'all' | 'TWITCH'>('all');
 
   // Debounced search filtering
@@ -37,6 +38,9 @@ export const StreamersPage: React.FC<StreamersPageProps> = ({
     if (filter === 'live' && !isLive) return false;
     if (filter === 'offline' && isLive) return false;
     if (filter === 'featured' && !c.featured) return false;
+
+    // Faction filter
+    if (factionFilter !== 'all' && c.faction !== factionFilter) return false;
 
     // Search query
     if (debouncedSearch.trim()) {
@@ -163,6 +167,59 @@ export const StreamersPage: React.FC<StreamersPageProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Factions Segmented Filter */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider mr-1">Faction:</span>
+        <button
+          onClick={() => setFactionFilter('all')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'all' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white'
+          }`}
+        >
+          All Roles
+        </button>
+        <button
+          onClick={() => setFactionFilter('POLICE')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'POLICE' ? 'bg-blue-950/80 text-blue-300 border border-blue-500/40' : 'text-neutral-400 hover:text-blue-300'
+          }`}
+        >
+          LSPD / Police
+        </button>
+        <button
+          onClick={() => setFactionFilter('EMS')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'EMS' ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40' : 'text-neutral-400 hover:text-rose-300'
+          }`}
+        >
+          Pillbox EMS
+        </button>
+        <button
+          onClick={() => setFactionFilter('DOJ')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'DOJ' ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-amber-300'
+          }`}
+        >
+          DOJ / Court
+        </button>
+        <button
+          onClick={() => setFactionFilter('SYNDICATE')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'SYNDICATE' ? 'bg-purple-950/80 text-purple-300 border border-purple-500/40' : 'text-neutral-400 hover:text-purple-300'
+          }`}
+        >
+          Syndicate / Gangs
+        </button>
+        <button
+          onClick={() => setFactionFilter('CIVILIAN')}
+          className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
+            factionFilter === 'CIVILIAN' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40' : 'text-neutral-400 hover:text-emerald-300'
+          }`}
+        >
+          Civilian & Business
+        </button>
       </div>
 
       {/* Grid of Results */}

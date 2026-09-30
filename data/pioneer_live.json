@@ -18,7 +18,8 @@
       "isPioneerStreamer": true,
       "createdAt": "2026-09-28T12:24:50.678Z",
       "updatedAt": "2026-09-28T14:24:36.771Z",
-      "platformUserId": "234975883"
+      "platformUserId": "234975883",
+      "lastLiveAt": "2026-09-30T10:18:31.476Z"
     },
     {
       "id": "creator_apocalypticsith",
@@ -35,7 +36,8 @@
       "isPioneerStreamer": true,
       "createdAt": "2026-09-28T12:24:50.678Z",
       "updatedAt": "2026-09-28T14:22:15.318Z",
-      "platformUserId": "88677337"
+      "platformUserId": "88677337",
+      "lastLiveAt": "2026-09-30T06:48:31.476Z"
     },
     {
       "id": "creator_ithebunny",
@@ -52,7 +54,8 @@
       "isPioneerStreamer": true,
       "createdAt": "2026-09-28T12:24:50.678Z",
       "updatedAt": "2026-09-28T14:22:15.318Z",
-      "platformUserId": "774344954"
+      "platformUserId": "774344954",
+      "lastLiveAt": "2026-09-29T17:48:31.476Z"
     },
     {
       "id": "creator_moxiemoses",
@@ -69,7 +72,8 @@
       "isPioneerStreamer": true,
       "createdAt": "2026-09-28T12:24:50.678Z",
       "updatedAt": "2026-09-28T14:22:15.318Z",
-      "platformUserId": "175126543"
+      "platformUserId": "175126543",
+      "lastLiveAt": "2026-09-28T19:48:31.476Z"
     }
   ],
   "platformAccounts": [
@@ -194,10 +198,10 @@
   "adminUsers": [
     {
       "id": "admin_tjsingh_01",
-      "email": "tjsingh@pioneerrp.live",
+      "email": "Trnjeet@gmail.com",
       "username": "TJSINGH",
       "role": "superadmin",
-      "passwordHash": "$2b$10$rjrcIV/fuAtcAVUZE/TJqucxq0CrM35XQYghY7WpCf3LsbB/8WkiW",
+      "passwordHash": "$2b$10$a2GzS7C.4zPn3WeyGrxFy.eZ/fl2mkf8h/2mdng2sfZ7dsZnd40Re",
       "createdAt": "2026-09-28T14:34:05.825Z",
       "updatedAt": "2026-09-28T14:34:05.825Z"
     },
@@ -224,10 +228,59 @@
     "seoDescription": "The official streaming and creator hub for Pioneer RP. Real-time Twitch stream monitoring, featured creators, creator codes, and FiveM community directory.",
     "heroHeadline": "PIONEER RP LIVE",
     "heroSubheading": "The city is live. Watch the stories unfold.",
-    "lastSyncAt": "2026-09-28T14:34:09.098Z",
-    "syncStatus": "success",
-    "syncErrorMessage": "null"
+    "twitchClientId": "y25p37qpoy7xwsqh2rgu8gw1mpiinz",
+    "twitchClientSecret": "2bn0vr76fvlzp42zsaum04cjameuh7",
+    "lastSyncAt": "2026-09-30T13:29:15.390Z",
+    "syncStatus": "error",
+    "syncErrorMessage": "Failed to obtain Twitch App Access Token: 403 {\"status\":403,\"message\":\"invalid client secret\"}\n"
   },
+  "clips": [
+    {
+      "id": "clip_01",
+      "title": "TJ SINGH Insane 100mph Police Pit Maneuver in Downtown",
+      "clipUrl": "https://clips.twitch.tv/CautiousFuriousGuanacoLitFam",
+      "embedUrl": "https://clips.twitch.tv/embed?clip=CautiousFuriousGuanacoLitFam",
+      "creatorId": "creator_tjsingh007",
+      "creatorName": "TJ SINGH",
+      "characterName": "Tejinder \"TJ\" Singh",
+      "category": "CHASE",
+      "submitterName": "CityEditor99",
+      "upvotes": 42,
+      "approved": true,
+      "featured": true,
+      "createdAt": "2026-09-29T13:20:55.264Z"
+    },
+    {
+      "id": "clip_02",
+      "title": "Syndicate Warehouse Ambush Shootout at Docks",
+      "clipUrl": "https://clips.twitch.tv/DignifiedPoliteSnailCoolStoryBro",
+      "embedUrl": "https://clips.twitch.tv/embed?clip=DignifiedPoliteSnailCoolStoryBro",
+      "creatorId": "creator_apocalypticsith",
+      "creatorName": "ApocalypticSith",
+      "characterName": "Darth Silas",
+      "category": "GUNFIGHT",
+      "submitterName": "SyndicateFan",
+      "upvotes": 38,
+      "approved": true,
+      "featured": true,
+      "createdAt": "2026-09-28T13:20:55.264Z"
+    },
+    {
+      "id": "clip_03",
+      "title": "Pillbox EMS Helicopter Rooftop Extraction in the Fog",
+      "clipUrl": "https://clips.twitch.tv/ResourcefulBoredOpossumHeyGuys",
+      "embedUrl": "https://clips.twitch.tv/embed?clip=ResourcefulBoredOpossumHeyGuys",
+      "creatorId": "creator_ithebunny",
+      "creatorName": "ithebunny",
+      "characterName": "Bunny Foster",
+      "category": "DRAMA",
+      "submitterName": "MedicLover",
+      "upvotes": 29,
+      "approved": true,
+      "featured": false,
+      "createdAt": "2026-09-27T13:20:55.264Z"
+    }
+  ],
   "analyticsEvents": [
     {
       "id": "evt_1790598290687_4xg1",
@@ -312,6 +365,33 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit_1790774963439_napl",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T13:29:23.439Z"
+    },
+    {
+      "id": "audit_1790773668393_t82d",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T13:07:48.393Z"
+    },
+    {
+      "id": "audit_1790773663351_efvs",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-30T13:07:43.351Z"
+    },
     {
       "id": "audit_1790606066307_o6aq",
       "adminId": "admin_tjsingh_01",

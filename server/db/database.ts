@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import pg from 'pg';
-import { Creator, PlatformAccount, LiveStream, AdminUser, SiteSettings, AuditLog } from '../../src/types/index.js';
+import { Creator, PlatformAccount, LiveStream, AdminUser, SiteSettings, AuditLog, CommunityClip } from '../../src/types/index.js';
 
 const { Pool } = pg;
 
@@ -12,6 +12,7 @@ interface DatabaseSchema {
   liveStreams: LiveStream[];
   adminUsers: (AdminUser & { passwordHash: string })[];
   settings: Record<string, string>;
+  clips: CommunityClip[];
   analyticsEvents: Array<{
     id: string;
     eventType: string;
@@ -105,6 +106,7 @@ class DatabaseManager {
     liveStreams: [],
     adminUsers: [],
     settings: { ...DEFAULT_SETTINGS },
+    clips: [],
     analyticsEvents: [],
     auditLogs: [],
   };
@@ -114,18 +116,19 @@ class DatabaseManager {
   private saveTimeout: NodeJS.Timeout | null = null;
 
   async init(): Promise<void> {
-    if (process.env.DATABASE_URL) {
+    const pgConnString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+    if (pgConnString) {
       try {
         const pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
-          connectionTimeoutMillis: 3000,
+          connectionString: pgConnString,
+          ssl: pgConnString.includes('localhost') ? false : { rejectUnauthorized: false },
+          connectionTimeoutMillis: 4000,
         });
         const client = await pool.connect();
         client.release();
         this.pgPool = pool;
         this.isPostgres = true;
-        console.log('[DB] Connected to PostgreSQL instance.');
+        console.log('[DB] Connected to PostgreSQL / Vercel Postgres instance.');
         await this.initPostgresSchema();
       } catch (err: any) {
         console.warn('[DB] PostgreSQL connection failed, falling back to embedded database:', err.message);
@@ -143,6 +146,18 @@ class DatabaseManager {
   private initFileDb() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+
+    const SEED_FILE = path.resolve(process.cwd(), 'data', 'pioneer_live.json');
+
+    // If target DB_FILE does not exist (e.g. fresh Vercel serverless /tmp), seed from bundled data
+    if (!fs.existsSync(DB_FILE) && fs.existsSync(SEED_FILE)) {
+      try {
+        fs.copyFileSync(SEED_FILE, DB_FILE);
+        console.log('[DB] Seeded fresh instance from bundled pioneer_live.json');
+      } catch (err) {
+        console.warn('[DB] Could not copy seed file:', err);
+      }
     }
 
     if (fs.existsSync(DB_FILE)) {
@@ -371,6 +386,59 @@ class DatabaseManager {
         this.memoryDb.creators.push(creator);
         this.memoryDb.platformAccounts.push(platformAccount);
       }
+      this.scheduleSave();
+    }
+
+    // 3. Seed initial community clips if empty
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    if (this.memoryDb.clips.length === 0) {
+      this.memoryDb.clips = [
+        {
+          id: 'clip_01',
+          title: 'TJ SINGH Insane 100mph Police Pit Maneuver in Downtown',
+          clipUrl: 'https://clips.twitch.tv/CautiousFuriousGuanacoLitFam',
+          embedUrl: 'https://clips.twitch.tv/embed?clip=CautiousFuriousGuanacoLitFam',
+          creatorId: 'creator_tjsingh007',
+          creatorName: 'TJ SINGH',
+          characterName: 'Tejinder "TJ" Singh',
+          category: 'CHASE',
+          submitterName: 'CityEditor99',
+          upvotes: 42,
+          approved: true,
+          featured: true,
+          createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+        },
+        {
+          id: 'clip_02',
+          title: 'Syndicate Warehouse Ambush Shootout at Docks',
+          clipUrl: 'https://clips.twitch.tv/DignifiedPoliteSnailCoolStoryBro',
+          embedUrl: 'https://clips.twitch.tv/embed?clip=DignifiedPoliteSnailCoolStoryBro',
+          creatorId: 'creator_apocalypticsith',
+          creatorName: 'ApocalypticSith',
+          characterName: 'Darth Silas',
+          category: 'GUNFIGHT',
+          submitterName: 'SyndicateFan',
+          upvotes: 38,
+          approved: true,
+          featured: true,
+          createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+        },
+        {
+          id: 'clip_03',
+          title: 'Pillbox EMS Helicopter Rooftop Extraction in the Fog',
+          clipUrl: 'https://clips.twitch.tv/ResourcefulBoredOpossumHeyGuys',
+          embedUrl: 'https://clips.twitch.tv/embed?clip=ResourcefulBoredOpossumHeyGuys',
+          creatorId: 'creator_ithebunny',
+          creatorName: 'ithebunny',
+          characterName: 'Bunny Foster',
+          category: 'DRAMA',
+          submitterName: 'MedicLover',
+          upvotes: 29,
+          approved: true,
+          featured: false,
+          createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
+        },
+      ];
       this.scheduleSave();
     }
   }
@@ -896,6 +964,115 @@ class DatabaseManager {
     this.memoryDb.adminUsers.splice(index, 1);
     this.scheduleSave();
     return true;
+  }
+
+  // --- COMMUNITY CLIPS METHODS ---
+  async getClips(options?: { category?: string; creatorId?: string; approvedOnly?: boolean }): Promise<CommunityClip[]> {
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    let list = [...this.memoryDb.clips];
+    if (options?.approvedOnly !== false) {
+      list = list.filter(c => c.approved);
+    }
+    if (options?.category && options.category !== 'ALL') {
+      list = list.filter(c => c.category === options.category);
+    }
+    if (options?.creatorId) {
+      list = list.filter(c => c.creatorId === options.creatorId);
+    }
+    return list.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+  }
+
+  async submitClip(data: {
+    title: string;
+    clipUrl: string;
+    creatorName?: string;
+    category?: 'CHASE' | 'HEIST' | 'COMEDY' | 'DRAMA' | 'GUNFIGHT';
+    submitterName?: string;
+  }): Promise<CommunityClip> {
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    const clipId = `clip_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    
+    // Parse Twitch clip slug from URL
+    let embedUrl = data.clipUrl;
+    const match = data.clipUrl.match(/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/) || data.clipUrl.match(/\/clip\/([A-Za-z0-9_-]+)/);
+    if (match) {
+      embedUrl = `https://clips.twitch.tv/embed?clip=${match[1]}&parent=${process.env.HOSTNAME || 'localhost'}`;
+    }
+
+    const newClip: CommunityClip = {
+      id: clipId,
+      title: data.title.trim(),
+      clipUrl: data.clipUrl.trim(),
+      embedUrl,
+      creatorName: data.creatorName?.trim() || 'Pioneer Creator',
+      category: data.category || 'CHASE',
+      submitterName: data.submitterName?.trim() || 'Community Member',
+      upvotes: 1,
+      approved: true,
+      featured: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.memoryDb.clips.unshift(newClip);
+    this.scheduleSave();
+    return newClip;
+  }
+
+  async upvoteClip(id: string): Promise<number | null> {
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    const clip = this.memoryDb.clips.find(c => c.id === id);
+    if (!clip) return null;
+    clip.upvotes = (clip.upvotes || 0) + 1;
+    this.scheduleSave();
+    return clip.upvotes;
+  }
+
+  async deleteClip(id: string): Promise<boolean> {
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    const idx = this.memoryDb.clips.findIndex(c => c.id === id);
+    if (idx === -1) return false;
+    this.memoryDb.clips.splice(idx, 1);
+    this.scheduleSave();
+    return true;
+  }
+
+  async updateClip(id: string, updates: Partial<CommunityClip>): Promise<CommunityClip | null> {
+    this.memoryDb.clips = this.memoryDb.clips || [];
+    const clip = this.memoryDb.clips.find(c => c.id === id);
+    if (!clip) return null;
+    Object.assign(clip, updates);
+    this.scheduleSave();
+    return clip;
+  }
+
+  // --- DATABASE EXPORT / IMPORT (FOR VERCEL, LOCAL, OR CLOUD MIGRATIONS) ---
+  exportFullDatabase(): DatabaseSchema {
+    return JSON.parse(JSON.stringify(this.memoryDb));
+  }
+
+  async importFullDatabase(importedData: Partial<DatabaseSchema>): Promise<{ success: boolean; creatorCount: number }> {
+    if (!importedData || typeof importedData !== 'object') {
+      throw new Error('Invalid database format. Expected JSON object.');
+    }
+
+    if (Array.isArray(importedData.creators)) {
+      this.memoryDb.creators = importedData.creators;
+    }
+    if (Array.isArray(importedData.platformAccounts)) {
+      this.memoryDb.platformAccounts = importedData.platformAccounts;
+    }
+    if (Array.isArray(importedData.adminUsers) && importedData.adminUsers.length > 0) {
+      this.memoryDb.adminUsers = importedData.adminUsers;
+    }
+    if (importedData.settings && typeof importedData.settings === 'object') {
+      this.memoryDb.settings = { ...this.memoryDb.settings, ...importedData.settings };
+    }
+
+    this.saveToFileImmediate();
+    return {
+      success: true,
+      creatorCount: this.memoryDb.creators.length,
+    };
   }
 }
 

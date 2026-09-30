@@ -5,6 +5,7 @@ import { db } from '../db/database.js';
 import { twitchService } from '../services/twitchService.js';
 import { syncService } from '../services/syncService.js';
 import { serverStatusService } from '../services/serverStatusService.js';
+import { discordWebhook } from '../services/discordWebhook.js';
 
 const router = Router();
 const JWT_SECRET = process.env.SESSION_SECRET || 'pioneer_rp_live_secret_session_key_change_in_production';
@@ -169,6 +170,16 @@ router.get('/streamers', async (req: Request, res: Response) => {
   }
 });
 
+// Alias for /api/creators
+router.get('/creators', async (req: Request, res: Response) => {
+  try {
+    const creators = await db.getCreators({ enabledOnly: true });
+    res.json({ data: creators, total: creators.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/streamers/:slug — Detailed profile
 router.get('/streamers/:slug', async (req: Request, res: Response) => {
   try {
@@ -294,6 +305,56 @@ router.get('/vods', async (_req: Request, res: Response) => {
     res.json({ data: vods });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to retrieve creator VODs: ' + err.message });
+  }
+});
+
+// GET /api/clips — Community highlight clips
+router.get('/clips', async (req: Request, res: Response) => {
+  try {
+    const { category, creatorId } = req.query;
+    const clips = await db.getClips({
+      category: category as string,
+      creatorId: creatorId as string,
+      approvedOnly: true,
+    });
+    res.json({ data: clips, total: clips.length });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load community clips: ' + err.message });
+  }
+});
+
+// POST /api/clips/submit — Submit a community clip
+router.post('/clips/submit', async (req: Request, res: Response) => {
+  try {
+    const { title, clipUrl, creatorName, category, submitterName } = req.body;
+    if (!title || !clipUrl) {
+      return res.status(400).json({ error: 'Title and Twitch clip URL are required.' });
+    }
+
+    const clip = await db.submitClip({
+      title,
+      clipUrl,
+      creatorName,
+      category,
+      submitterName,
+    });
+
+    res.status(201).json({ success: true, message: 'Clip submitted successfully!', data: clip });
+  } catch (err: any) {
+    res.status(400).json({ error: 'Failed submitting clip: ' + err.message });
+  }
+});
+
+// POST /api/clips/:id/upvote — Upvote a clip
+router.post('/clips/:id/upvote', async (req: Request, res: Response) => {
+  try {
+    const upvotes = await db.upvoteClip(req.params.id);
+    if (upvotes === null) {
+      return res.status(404).json({ error: 'Clip not found.' });
+    }
+    res.json({ success: true, upvotes });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -916,6 +977,17 @@ router.post('/admin/twitch/test', requireAdmin, async (_req: AuthenticatedReques
   }
 });
 
+// POST /api/admin/discord/test — Test Discord webhook notification
+router.post('/admin/discord/test', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { webhookUrl } = req.body;
+    const result = await discordWebhook.sendTestNotification(webhookUrl);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/admin/twitch/quick-connect — Save credentials and verify immediately
 router.post('/admin/twitch/quick-connect', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -1051,6 +1123,154 @@ router.delete('/admin/admins/:id', requireAdmin, async (req: AuthenticatedReques
     res.json({ success: true, message: 'Administrator removed successfully.' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/db/export — Export full database JSON backup
+router.get('/admin/db/export', requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const backup = db.exportFullDatabase();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="pioneer_live_backup_${Date.now()}.json"`);
+    res.send(JSON.stringify(backup, null, 2));
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to export database: ' + err.message });
+  }
+});
+
+// POST /api/admin/db/import — Restore or import full database JSON
+router.post('/admin/db/import', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const importedData = req.body;
+    const result = await db.importFullDatabase(importedData);
+
+    db.logAudit({
+      adminId: req.adminUser!.id,
+      adminEmail: req.adminUser!.email,
+      action: 'RESTORE_DATABASE_BACKUP',
+      entityType: 'DATABASE',
+      entityId: 'pioneer_live',
+      metadata: { creatorCount: result.creatorCount },
+    }).catch(() => {});
+
+    res.json({
+      message: `Database successfully restored! Loaded ${result.creatorCount} creators.`,
+      ...result,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: 'Import failed: ' + err.message });
+  }
+});
+
+// GET /api/admin/clips — Admin moderation list of all clips
+router.get('/admin/clips', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clips = await db.getClips({ approvedOnly: false });
+    res.json({ data: clips, total: clips.length });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load clips for moderation: ' + err.message });
+  }
+});
+
+// PUT /api/admin/clips/:id — Approve, feature, or update clip
+router.put('/admin/clips/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const updated = await db.updateClip(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: 'Clip not found.' });
+    }
+
+    db.logAudit({
+      adminId: req.adminUser!.id,
+      adminEmail: req.adminUser!.email,
+      action: 'MODERATE_CLIP',
+      entityType: 'COMMUNITY_CLIP',
+      entityId: id,
+      metadata: updates,
+    }).catch(() => {});
+
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update clip: ' + err.message });
+  }
+});
+
+// DELETE /api/admin/clips/:id — Remove clip
+router.delete('/admin/clips/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = await db.deleteClip(id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Clip not found.' });
+    }
+
+    db.logAudit({
+      adminId: req.adminUser!.id,
+      adminEmail: req.adminUser!.email,
+      action: 'DELETE_CLIP',
+      entityType: 'COMMUNITY_CLIP',
+      entityId: id,
+    }).catch(() => {});
+
+    res.json({ success: true, message: 'Clip deleted.' });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete clip: ' + err.message });
+  }
+});
+
+// GET /api/admin/export/creators.csv — Export creators to CSV
+router.get('/admin/export/creators.csv', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const creators = await db.getCreators({ enabledOnly: false });
+    const headers = ['ID', 'Username', 'DisplayName', 'CharacterName', 'GangName', 'Faction', 'CreatorCode', 'Featured', 'Verified', 'Enabled', 'ChannelUrl'];
+    
+    const rows = creators.map(c => [
+      `"${c.id || ''}"`,
+      `"${c.platformAccount?.username || c.slug || ''}"`,
+      `"${(c.displayName || '').replace(/"/g, '""')}"`,
+      `"${(c.characterName || '').replace(/"/g, '""')}"`,
+      `"${(c.gangName || '').replace(/"/g, '""')}"`,
+      `"${c.faction || 'CIVILIAN'}"`,
+      `"${c.creatorCode || ''}"`,
+      c.featured ? 'YES' : 'NO',
+      c.verified ? 'YES' : 'NO',
+      c.enabled ? 'YES' : 'NO',
+      `"${c.platformAccount?.channelUrl || ''}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="pioneer_creators_${Date.now()}.csv"`);
+    res.send(csvContent);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to export creators CSV: ' + err.message });
+  }
+});
+
+// GET /api/admin/export/audit-logs.csv — Export audit logs to CSV
+router.get('/admin/export/audit-logs.csv', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const logs = db.getAuditLogs(500);
+    const headers = ['ID', 'Timestamp', 'AdminEmail', 'Action', 'EntityType', 'EntityId', 'Metadata'];
+
+    const rows = logs.map(l => [
+      `"${l.id}"`,
+      `"${l.createdAt}"`,
+      `"${l.adminEmail}"`,
+      `"${l.action}"`,
+      `"${l.entityType}"`,
+      `"${l.entityId}"`,
+      `"${JSON.stringify(l.metadata || {}).replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="pioneer_audit_logs_${Date.now()}.csv"`);
+    res.send(csvContent);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to export audit logs CSV: ' + err.message });
   }
 });
 

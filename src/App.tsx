@@ -9,7 +9,12 @@ import { StreamersPage } from './pages/StreamersPage.js';
 import { StreamerProfilePage } from './pages/StreamerProfilePage.js';
 import { FeaturedPage } from './pages/FeaturedPage.js';
 import { VodsPage } from './pages/VodsPage.js';
+import { SquadStreamPage } from './pages/SquadStreamPage.js';
+import { CityMapPage } from './pages/CityMapPage.js';
+import { ClipsPage } from './pages/ClipsPage.js';
+import { EventsPage } from './pages/EventsPage.js';
 import { AboutPage } from './pages/AboutPage.js';
+import { FiveMStatusBar } from './components/FiveMStatusBar.js';
 import { AdminDashboard } from './pages/admin/AdminDashboard.js';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.js';
 
@@ -205,7 +210,48 @@ export default function App() {
       );
     }
 
-    // 8. About Page
+    // 8. Multi-Stream Squad View
+    if (currentPath === '/squad' || currentPath === '/squad-stream') {
+      return (
+        <SquadStreamPage
+          onNavigateHome={() => navigate('/')}
+          onNavigateToProfile={(slug: string) => navigate(`/streamer/${slug}`)}
+        />
+      );
+    }
+
+    // 9. Interactive City Map & Districts
+    if (currentPath === '/map' || currentPath === '/city-map') {
+      return (
+        <CityMapPage
+          creators={allCreators}
+          onNavigateToProfile={(slug: string) => navigate(`/streamer/${slug}`)}
+          onNavigateToSquad={(streamers: string[]) => navigate(`/squad?streamers=${streamers.join(',')}`)}
+        />
+      );
+    }
+
+    // 10. Community Stream Clips
+    if (currentPath === '/clips' || currentPath === '/highlights') {
+      return (
+        <ClipsPage
+          onNavigateHome={() => navigate('/')}
+        />
+      );
+    }
+
+    // 11. Server Events & Schedule
+    if (currentPath === '/events' || currentPath === '/schedule') {
+      return (
+        <EventsPage
+          creators={allCreators}
+          onNavigateToProfile={(slug: string) => navigate(`/streamer/${slug}`)}
+          onNavigateToSquad={() => navigate('/squad')}
+        />
+      );
+    }
+
+    // 12. About Page
     if (currentPath === '/about') {
       return (
         <AboutPage
@@ -235,13 +281,16 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-950 font-sans selection:bg-purple-600 selection:text-white">
       {!isAdminView && (
-        <Navbar
-          currentPath={currentPath}
-          onNavigate={navigate}
-          settings={settings}
-          adminUser={adminUser}
-          liveCount={liveCreators.length}
-        />
+        <>
+          <FiveMStatusBar onNavigateToSquad={() => navigate('/squad')} />
+          <Navbar
+            currentPath={currentPath}
+            onNavigate={navigate}
+            settings={settings}
+            adminUser={adminUser}
+            liveCount={liveCreators.length}
+          />
+        </>
       )}
 
       <main className="flex-1">

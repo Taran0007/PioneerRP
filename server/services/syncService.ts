@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { db } from '../db/database.js';
 import { twitchService } from './twitchService.js';
+import { discordWebhook } from './discordWebhook.js';
 
 export interface SyncResult {
   timestamp: string;
@@ -157,7 +158,8 @@ class StreamSyncService extends EventEmitter {
         if (isLive) {
           const streamInfo = liveStreams.find(s => s.userId === account.platformUserId);
           if (streamInfo) {
-            await db.upsertLiveStream({
+            const wasOffline = !account.creator.currentStream?.isLive;
+            const updatedStream = await db.upsertLiveStream({
               creatorId: account.creatorId,
               platformAccountId: account.id,
               platform: 'TWITCH',
@@ -170,6 +172,13 @@ class StreamSyncService extends EventEmitter {
               isLive: true,
             });
             liveDetected++;
+
+            // Trigger Discord Webhook Notification when streamer just went live
+            if (wasOffline && updatedStream) {
+              discordWebhook.sendLiveNotification(account.creator, updatedStream).catch(err => {
+                console.warn('[DiscordWebhook] Notification error:', err.message);
+              });
+            }
           }
         } else {
           // If was previously live, mark offline

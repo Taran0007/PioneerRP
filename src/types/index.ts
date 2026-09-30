@@ -1,11 +1,14 @@
 export type Platform = 'TWITCH' | 'KICK';
 
+export type FactionType = 'POLICE' | 'EMS' | 'DOJ' | 'SYNDICATE' | 'CIVILIAN';
+
 export interface Creator {
   id: string;
   slug: string;
   displayName: string;
   characterName?: string;
   gangName?: string;
+  faction?: FactionType;
   bio?: string;
   profileImageUrl?: string;
   bannerUrl?: string;
@@ -88,6 +91,7 @@ export interface SiteSettings {
   siteName: string;
   siteTagline: string;
   discordUrl: string;
+  discordWebhookUrl?: string;
   storeUrl: string;
   serverJoinUrl: string;
   serverStatusApiUrl: string;
@@ -142,4 +146,21 @@ export interface ServerStatusResponse {
   serverName?: string;
   message: string;
   checkedAt: string;
+}
+
+export interface CommunityClip {
+  id: string;
+  title: string;
+  clipUrl: string;
+  embedUrl: string;
+  creatorId?: string;
+  creatorName: string;
+  characterName?: string;
+  category: 'CHASE' | 'HEIST' | 'COMEDY' | 'DRAMA' | 'GUNFIGHT';
+  thumbnailUrl?: string;
+  submitterName: string;
+  upvotes: number;
+  approved: boolean;
+  featured: boolean;
+  createdAt: string;
 }

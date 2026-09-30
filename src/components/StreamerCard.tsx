@@ -81,7 +81,7 @@ export const StreamerCard: React.FC<StreamerCardProps> = ({ creator, onNavigateT
         </div>
 
         {/* Character & Gang info */}
-        {(creator.characterName || creator.gangName) && (
+        {(creator.characterName || creator.gangName || creator.faction) && (
           <div className="mb-2 text-xs flex items-center gap-2 flex-wrap text-neutral-300">
             {creator.characterName && (
               <span className="flex items-center gap-1 text-neutral-300">
@@ -89,7 +89,32 @@ export const StreamerCard: React.FC<StreamerCardProps> = ({ creator, onNavigateT
                 <span className="truncate">{creator.characterName}</span>
               </span>
             )}
-            {creator.gangName && (
+            {creator.faction === 'POLICE' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-500/40 text-blue-300 font-mono font-bold">
+                LSPD
+              </span>
+            )}
+            {creator.faction === 'EMS' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-500/40 text-rose-300 font-mono font-bold">
+                PILLBOX EMS
+              </span>
+            )}
+            {creator.faction === 'DOJ' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono font-bold">
+                DOJ
+              </span>
+            )}
+            {creator.faction === 'SYNDICATE' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-500/40 text-purple-300 font-mono font-bold">
+                SYNDICATE
+              </span>
+            )}
+            {creator.faction === 'CIVILIAN' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-mono font-bold">
+                CIVILIAN
+              </span>
+            )}
+            {creator.gangName && creator.faction !== 'SYNDICATE' && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/40 border border-purple-800/30 text-purple-300 font-medium">
                 {creator.gangName}
               </span>

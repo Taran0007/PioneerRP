@@ -289,6 +289,30 @@ class ApiClient {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete administrator');
   }
+
+  // Admin Clip Moderation
+  async adminGetClips(): Promise<{ data: any[]; total: number }> {
+    const res = await this.adminFetch('/admin/clips');
+    if (!res.ok) throw new Error('Failed to load clips for moderation');
+    return res.json();
+  }
+
+  async adminUpdateClip(id: string, updates: any): Promise<{ success: boolean; data: any }> {
+    const res = await this.adminFetch(`/admin/clips/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update clip');
+    return data;
+  }
+
+  async adminDeleteClip(id: string): Promise<void> {
+    const res = await this.adminFetch(`/admin/clips/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete clip');
+  }
 }
 
 export const api = new ApiClient();

@@ -150,8 +150,34 @@ The repository is pre-configured with `vercel.json` and a serverless API handler
    - `JWT_SECRET`: A long random secret string.
    - `TWITCH_CLIENT_ID`: Your Twitch Client ID.
    - `TWITCH_CLIENT_SECRET`: Your Twitch Client Secret.
-   - `DATABASE_URL` (Recommended): A free PostgreSQL connection string from [Neon.tech](https://neon.tech), [Supabase](https://supabase.com), or Vercel Postgres so your admin settings persist permanently across serverless instances.
 6. Click **Deploy**. Vercel will build the frontend and deploy the serverless functions in `/api` automatically!
+
+---
+
+### Step 3: Link Your Database in Vercel (3 Easy Methods)
+
+#### Method 1: Automatic Zero-Config Bundled Database (No setup required!)
+The current database file (`data/pioneer_live.json`) is committed into your Git repository.
+When your Vercel site runs:
+- It automatically seeds `/tmp/data/pioneer_live.json` with all 4 streamers (TJ SINGH, ApocalypticSith, ithebunny, Moxie Moses), their Twitch user IDs, avatars, and your admin account (`Trnjeet@gmail.com`).
+- Anyone with your Vercel link can visit the site and watch live streams immediately without setting up any external database!
+
+#### Method 2: Vercel Postgres / Neon Storage (Recommended for 100% cloud persistence)
+Because Vercel serverless functions are ephemeral, linking Vercel Postgres ensures any new streamers or settings you change in `/admin` persist permanently:
+1. In your **Vercel Project Dashboard**, click the **"Storage"** tab at the top.
+2. Click **"Connect Database"** (or **"Create Database"**) and choose **"Postgres"** (powered by Neon).
+3. Choose a region close to your users (e.g. `Washington D.C. (iad1)` or `Frankfurt (fra1)`) and click **Create**.
+4. In the dialog, select your project and click **Connect**.
+5. Vercel will automatically set the `POSTGRES_URL` and `DATABASE_URL` environment variables for your project!
+6. Click **Redeploy**.
+7. Done! The backend automatically detects the PostgreSQL connection, creates the SQL tables (`creators`, `platform_accounts`, `settings`, `admin_users`), and connects seamlessly!
+
+#### Method 3: Using Google Cloud Firestore (`ai-studio-2e2977be-c16d-457c-80f2-891921653f5c`)
+If you want to use the included Google Cloud Firestore database:
+1. In Vercel Project Settings -> **Environment Variables**, add:
+   - `FIREBASE_PROJECT_ID`: `gen-lang-client-0356159766`
+   - `FIRESTORE_DATABASE_ID`: `ai-studio-2e2977be-c16d-457c-80f2-891921653f5c`
+2. You can also import and export full database JSON backups at any time via the **Admin Panel -> Settings** tab!
 
 ---
 

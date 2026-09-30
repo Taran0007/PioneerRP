@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "Pioneer RP Live Hub",
+  "short_name": "Pioneer RP",
+  "description": "Watch Pioneer RP streamers, track live FiveM server activity, and explore community clips.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#9333ea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://avatar.vercel.sh/pioneer-rp-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://avatar.vercel.sh/pioneer-rp-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "games", "social"]
+}

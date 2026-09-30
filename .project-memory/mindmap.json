@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "appName": "Pioneer RP Live Hub",
+  "lastUpdated": "2026-09-30T13:25:00Z",
+  "root": {
+    "id": "pioneer-rp-live",
+    "name": "Pioneer RP Live Ecosystem",
+    "category": "root",
+    "status": "operational",
+    "children": [
+      {
+        "id": "data-ingestion",
+        "name": "Data Ingestion & APIs",
+        "category": "subsystem",
+        "status": "operational",
+        "children": [
+          { "id": "twitch-helix", "name": "Twitch Helix Streams API", "status": "operational", "details": "Syncs live streamers every 30-45s, fetches avatars, titles, viewer counts, and recent VODs" },
+          { "id": "fivem-cfx", "name": "FiveM Server Status API", "status": "operational", "details": "Queries /dynamic.json or CFX endpoint for player count (124/128) and ping" },
+          { "id": "discord-bot", "name": "Discord Live Webhooks", "status": "operational", "details": "Delivers rich embeds with roleplay character name, faction, and Tebex store codes" },
+          { "id": "tebex-analytics", "name": "Tebex Store & Code Tracker", "status": "operational", "details": "Tracks watch clicks, code copies, and store visits per streamer" }
+        ]
+      },
+      {
+        "id": "frontend-experience",
+        "name": "Frontend Experience (SPA)",
+        "category": "subsystem",
+        "status": "operational",
+        "children": [
+          { "id": "live-page", "name": "Live Hub & 3D Streamer Marquee", "status": "operational", "details": "Real-time viewer numbers, live previews, and interactive cards" },
+          { "id": "squad-view", "name": "Multi-Stream Squad Grid", "status": "operational", "details": "Watch 1 to 4 streams side-by-side with synced audio switching and Twitch chat" },
+          { "id": "city-map", "name": "Los Santos Interactive Map", "status": "operational", "details": "Map of Mission Row, Pillbox Hill, DOJ Courthouse with faction live streamer pins" },
+          { "id": "clips-portal", "name": "Community Clips Portal", "status": "operational", "details": "Viewer clip submission, category filtering (Chase, Heist, etc.), and upvotes" },
+          { "id": "events-calendar", "name": "Server Event Schedule", "status": "operational", "details": "Court trials, spray wars, car showcases with add-to-calendar integration" },
+          { "id": "pwa-push", "name": "PWA & Push Notifications", "status": "operational", "details": "Web app manifest, offline service worker cache, and stream alert toasts" }
+        ]
+      },
+      {
+        "id": "backend-core",
+        "name": "Backend Core (Express + SSE)",
+        "category": "subsystem",
+        "status": "operational",
+        "children": [
+          { "id": "express-routes", "name": "Express REST Router", "status": "operational", "details": "/api/live, /api/streamers, /api/creators, /api/vods, /api/clips, /api/settings" },
+          { "id": "sse-engine", "name": "Server-Sent Events (SSE)", "status": "operational", "details": "Real-time sync broadcast over /api/events for immediate UI refresh without reload" },
+          { "id": "auth-jwt", "name": "Admin Auth & JWT Session", "status": "operational", "details": "Bcrypt hashed passwords, HttpOnly SameSite=Strict cookies, role-based access" },
+          { "id": "audit-logger", "name": "Audit Logging & Security", "status": "operational", "details": "Tracks all admin actions with timestamp, user ID, and entity metadata" }
+        ]
+      },
+      {
+        "id": "database-cloud",
+        "name": "Storage & Deployment",
+        "category": "subsystem",
+        "status": "operational",
+        "children": [
+          { "id": "file-db", "name": "JSON File DB (/data/pioneer_live.json)", "status": "operational", "details": "Atomic async writes with debounced persistence and automated seed restore" },
+          { "id": "cloud-postgres", "name": "Vercel Postgres / Neon / Supabase", "status": "ready", "details": "Auto-detected via DATABASE_URL / POSTGRES_URL with automatic table creation" },
+          { "id": "backup-tools", "name": "Full JSON & CSV Export / Restore", "status": "operational", "details": "Instant backup download, file restore, and audit CSV exports from Admin Settings" }
+        ]
+      }
+    ]
+  }
+}

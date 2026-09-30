@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Menu, X, Radio, ShoppingBag, Shield, ExternalLink } from 'lucide-react';
+import { Menu, X, Radio, ShoppingBag, Shield, ExternalLink, Palette } from 'lucide-react';
 import { SiteSettings } from '../types/index.js';
+import { useTheme } from '../context/ThemeContext.js';
 
 interface NavbarProps {
   currentPath: string;
@@ -18,9 +19,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   liveCount,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, cycleTheme } = useTheme();
 
   const navLinks = [
     { label: 'LIVE', path: '/live', badge: liveCount > 0 ? liveCount : null },
+    { label: 'SQUAD', path: '/squad' },
+    { label: 'MAP', path: '/map' },
+    { label: 'EVENTS', path: '/events' },
+    { label: 'CLIPS', path: '/clips' },
     { label: 'STREAMERS', path: '/streamers' },
     { label: 'VODS', path: '/vods' },
     { label: 'FEATURED', path: '/featured' },
@@ -82,7 +88,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Zone 3: Actions */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2.5">
+          {/* Theme Switcher Button */}
+          <button
+            onClick={cycleTheme}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-white/10 text-neutral-300 hover:text-white transition-colors text-xs font-mono"
+            title="Cycle theme (Purple / Cyan / Emerald)"
+          >
+            <Palette className="h-3.5 w-3.5 text-purple-400" />
+            <span className="text-[11px] font-bold">{theme}</span>
+          </button>
+
           {adminUser && (
             <button
               onClick={() => handleLinkClick('/admin')}

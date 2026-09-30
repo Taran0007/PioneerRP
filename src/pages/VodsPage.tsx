@@ -307,6 +307,70 @@ export const VodsPage: React.FC<VodsPageProps> = () => {
               </div>
             </div>
 
+            {/* Storyline Timestamp Bookmarks */}
+            <div className="rounded-2xl bg-neutral-950 border border-white/5 p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-neutral-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                  Key Roleplay Moments & Timestamps
+                </span>
+                <span className="text-[11px] font-mono text-neutral-400">Click to jump on Twitch</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <a
+                  href={`${activeModalVod.url}?t=00h12m00s`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-purple-950/40 border border-white/5 hover:border-purple-500/30 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">00:12:00</span>
+                    <span className="text-neutral-300 group-hover:text-white font-medium">Duty Briefing & Setup</span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-purple-300" />
+                </a>
+
+                <a
+                  href={`${activeModalVod.url}?t=00h48m30s`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-purple-950/40 border border-white/5 hover:border-purple-500/30 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">00:48:30</span>
+                    <span className="text-neutral-300 group-hover:text-white font-medium">10-80 High Speed Pursuit</span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-purple-300" />
+                </a>
+
+                <a
+                  href={`${activeModalVod.url}?t=01h35m15s`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-purple-950/40 border border-white/5 hover:border-purple-500/30 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">01:35:15</span>
+                    <span className="text-neutral-300 group-hover:text-white font-medium">Negotiation & Hostage Scene</span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-purple-300" />
+                </a>
+
+                <a
+                  href={`${activeModalVod.url}?t=02h10m40s`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-purple-950/40 border border-white/5 hover:border-purple-500/30 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">02:10:40</span>
+                    <span className="text-neutral-300 group-hover:text-white font-medium">Debrief & Interrogation</span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-neutral-400 group-hover:text-purple-300" />
+                </a>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between text-xs text-neutral-400 pt-2">
               <div className="flex items-center gap-3">
                 <span>Duration: <strong className="text-neutral-200">{activeModalVod.duration}</strong></span>

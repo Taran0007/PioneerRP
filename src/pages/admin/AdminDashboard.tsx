@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Radio, Star, BarChart3, Settings, LogOut, Plus,
   RefreshCw, Edit3, Trash2, Check, X, ExternalLink, Shield, AlertCircle,
-  ArrowUp, ArrowDown, Eye, Copy, Tv, Search, CheckCircle2, History, UserPlus, UserCheck
+  ArrowUp, ArrowDown, Eye, Copy, Tv, Search, CheckCircle2, History, UserPlus, UserCheck,
+  Database, Download, Upload, FileText, Bell, Film, Network
 } from 'lucide-react';
 import { Creator, SiteSettings, AnalyticsSummary, AuditLog } from '../../types/index.js';
 import { api } from '../../services/apiClient.js';
+import { MindmapView } from '../../components/MindmapView.js';
 
 interface AdminDashboardProps {
   adminUser: any;
@@ -18,7 +20,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onLogout,
   onNavigateHome,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'streamers' | 'live' | 'featured' | 'admins' | 'analytics' | 'settings' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'streamers' | 'live' | 'featured' | 'admins' | 'analytics' | 'clips' | 'settings' | 'audit' | 'mindmap'>('overview');
 
   // Overview data
   const [overview, setOverview] = useState<any>(null);
@@ -38,6 +40,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     role: 'admin',
   });
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  // Community clips moderation state
+  const [adminClips, setAdminClips] = useState<any[]>([]);
+  const [loadingClips, setLoadingClips] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -159,10 +165,169 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTimeout(() => setCopiedRedirect(false), 2000);
   };
 
+  const [exportingDb, setExportingDb] = useState(false);
+  const [importingDb, setImportingDb] = useState(false);
+  const [testingDiscord, setTestingDiscord] = useState(false);
+
+  const handleTestDiscordWebhook = async () => {
+    const url = settingsForm.discordWebhookUrl || '';
+    if (!url) {
+      showToast('Please enter a Discord Webhook URL first.', 'error');
+      return;
+    }
+    setTestingDiscord(true);
+    try {
+      const token = localStorage.getItem('pioneer_admin_token');
+      const res = await fetch('/api/admin/discord/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ webhookUrl: url }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Discord test notification delivered successfully!');
+      } else {
+        showToast(data.message || 'Discord webhook test failed', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Test failed', 'error');
+    } finally {
+      setTestingDiscord(false);
+    }
+  };
+
+  const handleExportDb = async () => {
+    setExportingDb(true);
+    try {
+      const token = localStorage.getItem('pioneer_admin_token');
+      const res = await fetch('/api/admin/db/export', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to export database');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pioneer_live_database_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Database JSON backup downloaded successfully!');
+    } catch (err: any) {
+      showToast(err.message || 'Export failed', 'error');
+    } finally {
+      setExportingDb(false);
+    }
+  };
+
+  const handleImportDbFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingDb(true);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const token = localStorage.getItem('pioneer_admin_token');
+      const res = await fetch('/api/admin/db/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+      showToast(data.message || 'Database imported successfully!');
+      await loadAllData();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to import JSON file', 'error');
+    } finally {
+      setImportingDb(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleExportCreatorsCsv = async () => {
+    try {
+      const token = localStorage.getItem('pioneer_admin_token');
+      const res = await fetch('/api/admin/export/creators.csv', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to export creators CSV');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pioneer_creators_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Creators CSV exported successfully!');
+    } catch (err: any) {
+      showToast(err.message || 'CSV export failed', 'error');
+    }
+  };
+
+  const handleExportAuditLogsCsv = async () => {
+    try {
+      const token = localStorage.getItem('pioneer_admin_token');
+      const res = await fetch('/api/admin/export/audit-logs.csv', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to export audit logs CSV');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pioneer_audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Audit logs CSV exported successfully!');
+    } catch (err: any) {
+      showToast(err.message || 'CSV export failed', 'error');
+    }
+  };
+
+  const handleToggleClipApproval = async (clipId: string, currentApproved: boolean) => {
+    try {
+      await api.adminUpdateClip(clipId, { approved: !currentApproved });
+      showToast(currentApproved ? 'Clip unapproved' : 'Clip approved & published!', 'success');
+      setAdminClips(prev => prev.map(c => c.id === clipId ? { ...c, approved: !currentApproved } : c));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update clip', 'error');
+    }
+  };
+
+  const handleToggleClipFeatured = async (clipId: string, currentFeatured: boolean) => {
+    try {
+      await api.adminUpdateClip(clipId, { featured: !currentFeatured });
+      showToast(currentFeatured ? 'Clip removed from featured' : 'Clip pinned to featured!', 'success');
+      setAdminClips(prev => prev.map(c => c.id === clipId ? { ...c, featured: !currentFeatured } : c));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update clip', 'error');
+    }
+  };
+
+  const handleDeleteClip = async (clipId: string) => {
+    if (!confirm('Are you sure you want to permanently delete this clip?')) return;
+    try {
+      await api.adminDeleteClip(clipId);
+      showToast('Clip deleted permanently', 'success');
+      setAdminClips(prev => prev.filter(c => c.id !== clipId));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete clip', 'error');
+    }
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [ovRes, crRes, setRes, anRes, audRes, liveRes, admRes] = await Promise.all([
+      const [ovRes, crRes, setRes, anRes, audRes, liveRes, admRes, clRes] = await Promise.all([
         api.adminGetOverview(),
         api.adminGetStreamers(),
         api.adminGetSettings(),
@@ -170,6 +335,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         api.adminGetAuditLogs(),
         api.adminGetLiveMonitor(),
         api.adminGetAdmins().catch(() => ({ data: [] })),
+        api.adminGetClips().catch(() => ({ data: [] })),
       ]);
 
       setOverview(ovRes.data);
@@ -181,6 +347,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setLiveMonitor(liveRes.data);
       if (admRes?.data) {
         setAdminsList(admRes.data);
+      }
+      if (clRes?.data) {
+        setAdminClips(clRes.data);
       }
 
       const featured = crRes.data
@@ -538,6 +707,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('clips')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                activeTab === 'clips'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Film className="h-4 w-4" />
+                <span>Clips Moderation</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-950/60 font-mono">
+                {adminClips.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 activeTab === 'settings'
@@ -547,6 +733,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <Settings className="h-4 w-4" />
               <span>Platform Settings</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('mindmap')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                activeTab === 'mindmap'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+              }`}
+            >
+              <Network className="h-4 w-4 text-purple-400" />
+              <span>Architecture Mindmap</span>
             </button>
 
             <button
@@ -595,7 +793,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {activeTab === 'featured' && 'Featured Creators Order'}
               {activeTab === 'admins' && 'Administrator Accounts'}
               {activeTab === 'analytics' && 'Interaction & Click Analytics'}
+              {activeTab === 'clips' && 'Community Clips Moderation'}
               {activeTab === 'settings' && 'System & API Settings'}
+              {activeTab === 'mindmap' && 'Architecture & Mindmap'}
               {activeTab === 'audit' && 'System Audit Trail'}
             </h2>
             <div className="text-xs text-neutral-400 mt-1 flex items-center gap-2">
@@ -1296,24 +1496,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Top Creators Table */}
             <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/60 overflow-hidden">
-              <div className="p-4 border-b border-white/[0.06]">
+              <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
                 <h3 className="font-display text-sm font-bold text-white uppercase tracking-wider">
-                  Top Creators by Engagement
+                  Creator Code & Referral Leaderboard
                 </h3>
+                <span className="text-[11px] text-purple-400 font-mono">
+                  Ranked by Total Community Interactions
+                </span>
               </div>
               <div className="divide-y divide-white/[0.05]">
                 {analytics?.topCreatorsByClicks?.map((item, idx) => (
-                  <div key={item.creatorId} className="p-4 flex items-center justify-between gap-4">
+                  <div key={item.creatorId} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-neutral-500 font-bold text-xs">#{idx + 1}</span>
+                      <span className="font-mono text-sm font-extrabold w-7 text-center">
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                      </span>
                       <div>
-                        <div className="font-bold text-white text-sm">{item.displayName}</div>
-                        <div className="text-[11px] text-neutral-400">@{item.username}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">{item.displayName}</span>
+                          <span className="text-[10px] text-neutral-400">@{item.username}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-xs font-mono">
-                      <span>{item.watchClicks} watch clicks</span>
-                      <span className="text-purple-300">{item.codeClicks} code clicks</span>
+                    <div className="flex items-center gap-4 text-xs font-mono">
+                      <span className="px-2 py-1 rounded bg-neutral-950 text-neutral-300 border border-white/5">
+                        {item.watchClicks} Twitch Visits
+                      </span>
+                      <span className="px-2 py-1 rounded bg-purple-950/60 text-purple-300 border border-purple-500/30 font-bold">
+                        {item.codeClicks} Store Code Clicks
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -1414,6 +1625,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={e => setSettingsForm({ ...settingsForm, discordUrl: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-neutral-950 border border-white/10 text-white text-xs focus:border-purple-500 focus:outline-none"
                   />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-neutral-300">
+                      Discord Webhook Stream Alerts URL
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleTestDiscordWebhook}
+                      disabled={testingDiscord}
+                      className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
+                    >
+                      <Bell className="h-3 w-3" />
+                      <span>{testingDiscord ? 'Sending test...' : 'Send Test Embed'}</span>
+                    </button>
+                  </div>
+                  <input
+                    type="url"
+                    placeholder="https://discord.com/api/webhooks/..."
+                    value={settingsForm.discordWebhookUrl || ''}
+                    onChange={e => setSettingsForm({ ...settingsForm, discordWebhookUrl: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-neutral-950 border border-white/10 text-white text-xs font-mono focus:border-purple-500 focus:outline-none"
+                  />
+                  <p className="text-[11px] text-neutral-500 mt-1">
+                    Automatically posts rich embeds with avatars, stream titles, and character names to Discord whenever a streamer goes live.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-1">
@@ -1520,10 +1757,249 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>{testingTwitch ? 'Testing Twitch...' : 'Test Twitch Connection'}</span>
               </button>
             </div>
+
+            {/* DATABASE MANAGEMENT & VERCEL LINKING */}
+            <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/60 p-6 space-y-5 mt-6">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <Database className="h-5 w-5 text-purple-400" />
+                  <div>
+                    <h3 className="font-display text-base font-bold text-white uppercase tracking-wider">
+                      Database & Vercel Cloud Storage
+                    </h3>
+                    <p className="text-xs text-neutral-400">
+                      Export, restore, or link permanent PostgreSQL / Firestore cloud storage for Vercel.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status and Guide */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-neutral-950/80 border border-white/[0.06] space-y-2">
+                  <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider">
+                    How it works on Vercel
+                  </span>
+                  <p className="text-xs text-neutral-300 leading-relaxed">
+                    By default, your site bundles <code className="text-purple-300">data/pioneer_live.json</code> directly in the deployment, ensuring all your streamers, avatars, and settings load automatically on Vercel.
+                  </p>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    To make admin changes 100% permanent across serverless restarts, you can link <strong>Vercel Postgres (Neon)</strong> in your Vercel Dashboard in 1 click under the <em>Storage</em> tab.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-neutral-950/80 border border-white/[0.06] space-y-2">
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                    Cloud Database Connection
+                  </span>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                      <span className="text-neutral-400">Environment Var:</span>
+                      <span className="font-mono text-neutral-200">POSTGRES_URL / DATABASE_URL</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                      <span className="text-neutral-400">Firestore Project:</span>
+                      <span className="font-mono text-purple-300">ai-studio-2e2977be</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-neutral-400">Active Storage:</span>
+                      <span className="font-semibold text-emerald-400">Embedded JSON / Auto-Postgres</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons: Export & Import */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleExportDb}
+                  disabled={exportingDb}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs transition-colors border border-white/10"
+                >
+                  <Download className="h-4 w-4 text-purple-400" />
+                  <span>{exportingDb ? 'Exporting...' : 'Download JSON Database Backup'}</span>
+                </button>
+
+                <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 text-purple-300 hover:text-white font-semibold text-xs transition-colors border border-purple-500/30 cursor-pointer">
+                  <Upload className="h-4 w-4 text-purple-400" />
+                  <span>{importingDb ? 'Restoring...' : 'Restore / Upload JSON Backup'}</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportDbFile}
+                    className="hidden"
+                    disabled={importingDb}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleExportCreatorsCsv}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs transition-colors border border-white/10"
+                >
+                  <FileText className="h-4 w-4 text-cyan-400" />
+                  <span>Export Creators CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportAuditLogsCsv}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs transition-colors border border-white/10"
+                >
+                  <FileText className="h-4 w-4 text-emerald-400" />
+                  <span>Export Audit Logs CSV</span>
+                </button>
+              </div>
+            </div>
           </form>
         )}
 
-        {/* TAB 7: AUDIT LOGS */}
+        {/* TAB 8: CLIPS MODERATION */}
+        {activeTab === 'clips' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-2">
+              <div>
+                <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide">
+                  Community Clip Submissions
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Approve, feature, or remove community-submitted Twitch clips from Los Santos roleplay.
+                </p>
+              </div>
+              <div className="text-xs font-mono text-purple-400 bg-purple-950/40 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+                {adminClips.length} Total Clips
+              </div>
+            </div>
+
+            {adminClips.length === 0 ? (
+              <div className="p-8 rounded-2xl border border-white/[0.08] bg-neutral-900/40 text-center space-y-2">
+                <Film className="h-8 w-8 text-neutral-500 mx-auto" />
+                <h4 className="text-sm font-semibold text-neutral-300">No community clips submitted yet</h4>
+                <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                  Viewers can submit their favorite moments on the public /clips page. They will appear here for review.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-950/80 border-b border-white/[0.08] text-neutral-400 font-mono uppercase text-[11px]">
+                      <tr>
+                        <th className="py-3 px-4">Clip Details</th>
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">Submitter</th>
+                        <th className="py-3 px-4">Upvotes</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.05]">
+                      {adminClips.map((clip: any) => (
+                        <tr key={clip.id} className="hover:bg-neutral-800/30 transition-colors">
+                          <td className="py-3.5 px-4 space-y-1">
+                            <div className="font-semibold text-white max-w-xs truncate" title={clip.title}>
+                              {clip.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono">
+                              <span>Creator: {clip.creatorName || 'Unknown'}</span>
+                              <span>·</span>
+                              <a
+                                href={clip.clipUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-purple-400 hover:underline flex items-center gap-1"
+                              >
+                                <span>Watch Clip</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-neutral-950 border border-white/5 text-purple-300">
+                              {clip.category || 'CHASE'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-neutral-300 font-mono">
+                            {clip.submitterName || 'Anonymous'}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-white">
+                            {clip.upvotes || 0}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              {clip.approved ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Approved
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-400">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Pending
+                                </span>
+                              )}
+                              {clip.featured && (
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  FEATURED
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleClipApproval(clip.id, !!clip.approved)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                                  clip.approved
+                                    ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                }`}
+                                title={clip.approved ? 'Unapprove clip' : 'Approve clip'}
+                              >
+                                {clip.approved ? 'Unapprove' : 'Approve'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleClipFeatured(clip.id, !!clip.featured)}
+                                className={`p-1.5 rounded-lg border transition-colors ${
+                                  clip.featured
+                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                    : 'bg-neutral-800 border-white/5 text-neutral-400 hover:text-white'
+                                }`}
+                                title={clip.featured ? 'Unfeature clip' : 'Feature clip on hero carousel'}
+                              >
+                                <Star className="h-3.5 w-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteClip(clip.id)}
+                                className="p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-200 border border-red-500/20 transition-colors"
+                                title="Delete clip permanently"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 9: ARCHITECTURE & PERSISTENT MINDMAP */}
+        {activeTab === 'mindmap' && (
+          <MindmapView />
+        )}
+
+        {/* TAB 10: AUDIT LOGS */}
         {activeTab === 'audit' && (
           <div className="space-y-6">
             <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/60 overflow-hidden">
