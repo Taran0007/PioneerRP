@@ -117,6 +117,7 @@ class DatabaseManager {
   private pgPool: pg.Pool | null = null;
   private isPostgres = false;
   private saveTimeout: NodeJS.Timeout | null = null;
+  private syncedLogIds = new Set<string>();
 
   get storageMode(): 'postgres' | 'embedded' {
     return this.isPostgres ? 'postgres' : 'embedded';
@@ -234,6 +235,9 @@ class DatabaseManager {
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
       this.saveToFileImmediate();
+      if (this.isPostgres) {
+        this.syncToPostgres().catch(err => console.error('[DB] Failed syncing to PostgreSQL:', err.message));
+      }
     }, 100);
   }
 
@@ -468,24 +472,161 @@ class DatabaseManager {
         }));
       }
 
+      this.syncedLogIds = new Set((this.memoryDb.auditLogs || []).map(l => l.id));
+
       console.log(`[DB] Loaded ${this.memoryDb.creators.length} creators and settings from Supabase/PostgreSQL.`);
     } catch (err) {
       console.error('[DB] Failed loading from Postgres:', err);
     }
   }
 
-  private async saveToPostgres() {
-    if (!this.pgPool) return;
+  // Mirrors the in-memory dataset into PostgreSQL inside a single transaction.
+  // This is the durable source of truth on serverless (Vercel), where the file DB is ephemeral.
+  private async syncToPostgres(): Promise<void> {
+    if (!this.pgPool || !this.isPostgres) return;
+    const client = await this.pgPool.connect();
     try {
+      await client.query('BEGIN');
+
       for (const [k, v] of Object.entries(this.memoryDb.settings || {})) {
-        await this.pgPool.query(
-          `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-          [k, v]
+        await client.query(
+          `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+          [k, typeof v === 'string' ? v : JSON.stringify(v)]
         );
       }
-    } catch (err) {
-      console.error('[DB] Failed saving settings to Postgres:', err);
+
+      for (const a of this.memoryDb.adminUsers || []) {
+        if (!a.passwordHash) continue;
+        await client.query(
+          `INSERT INTO admin_users (id, email, username, password_hash, role, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()), NOW())
+           ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, username = EXCLUDED.username,
+             password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, updated_at = NOW()`,
+          [a.id, a.email, a.username, a.passwordHash, a.role, a.createdAt || null]
+        );
+      }
+
+      for (const c of this.memoryDb.creators || []) {
+        await client.query(
+          `INSERT INTO creators (id, slug, display_name, character_name, gang_name, bio, profile_image_url,
+             banner_url, featured, featured_order, creator_code, creator_code_description, creator_store_url,
+             verified, enabled, is_pioneer_streamer, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+             COALESCE($17::timestamptz, NOW()), COALESCE($18::timestamptz, NOW()))
+           ON CONFLICT (id) DO UPDATE SET
+             slug = EXCLUDED.slug, display_name = EXCLUDED.display_name, character_name = EXCLUDED.character_name,
+             gang_name = EXCLUDED.gang_name, bio = EXCLUDED.bio, profile_image_url = EXCLUDED.profile_image_url,
+             banner_url = EXCLUDED.banner_url, featured = EXCLUDED.featured, featured_order = EXCLUDED.featured_order,
+             creator_code = EXCLUDED.creator_code, creator_code_description = EXCLUDED.creator_code_description,
+             creator_store_url = EXCLUDED.creator_store_url, verified = EXCLUDED.verified, enabled = EXCLUDED.enabled,
+             is_pioneer_streamer = EXCLUDED.is_pioneer_streamer, updated_at = NOW()`,
+          [
+            c.id, c.slug, c.displayName || c.slug, c.characterName ?? null, c.gangName ?? null, c.bio ?? null,
+            c.profileImageUrl ?? null, c.bannerUrl ?? null, !!c.featured, c.featuredOrder ?? 999,
+            c.creatorCode ?? null, c.creatorCodeDescription ?? null, c.creatorStoreUrl ?? null,
+            c.verified !== false, c.enabled !== false, c.isPioneerStreamer !== false,
+            c.createdAt || null, c.updatedAt || null,
+          ]
+        );
+      }
+
+      for (const pa of this.memoryDb.platformAccounts || []) {
+        if (!this.memoryDb.creators.some(c => c.id === pa.creatorId)) continue;
+        await client.query(
+          `INSERT INTO platform_accounts (id, creator_id, platform, platform_user_id, username, display_name,
+             channel_url, profile_image_url, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8, COALESCE($9::timestamptz, NOW()), COALESCE($10::timestamptz, NOW()))
+           ON CONFLICT (id) DO UPDATE SET
+             creator_id = EXCLUDED.creator_id, platform = EXCLUDED.platform, platform_user_id = EXCLUDED.platform_user_id,
+             username = EXCLUDED.username, display_name = EXCLUDED.display_name, channel_url = EXCLUDED.channel_url,
+             profile_image_url = EXCLUDED.profile_image_url, updated_at = NOW()`,
+          [pa.id, pa.creatorId, pa.platform, pa.platformUserId, pa.username, pa.displayName,
+           pa.channelUrl, pa.profileImageUrl ?? null, pa.createdAt || null, pa.updatedAt || null]
+        );
+      }
+
+      for (const ls of this.memoryDb.liveStreams || []) {
+        if (!this.memoryDb.creators.some(c => c.id === ls.creatorId)) continue;
+        if (!this.memoryDb.platformAccounts.some(p => p.id === ls.platformAccountId)) continue;
+        await client.query(
+          `INSERT INTO live_streams (id, creator_id, platform_account_id, platform, platform_stream_id, title,
+             category, viewer_count, thumbnail_url, started_at, ended_at, is_live, last_seen_at, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, COALESCE($10::timestamptz, NOW()), $11::timestamptz, $12,
+             COALESCE($13::timestamptz, NOW()), COALESCE($14::timestamptz, NOW()), COALESCE($15::timestamptz, NOW()))
+           ON CONFLICT (id) DO UPDATE SET
+             title = EXCLUDED.title, category = EXCLUDED.category, viewer_count = EXCLUDED.viewer_count,
+             thumbnail_url = EXCLUDED.thumbnail_url, is_live = EXCLUDED.is_live, ended_at = EXCLUDED.ended_at,
+             last_seen_at = EXCLUDED.last_seen_at, updated_at = NOW()`,
+          [ls.id, ls.creatorId, ls.platformAccountId, ls.platform, ls.platformStreamId, ls.title, ls.category,
+           ls.viewerCount ?? 0, ls.thumbnailUrl ?? '', ls.startedAt || null, ls.endedAt ?? null, !!ls.isLive,
+           ls.lastSeenAt || null, ls.createdAt || null, ls.updatedAt || null]
+        );
+      }
+
+      for (const cl of this.memoryDb.clips || []) {
+        await client.query(
+          `INSERT INTO clips (id, title, clip_url, embed_url, creator_id, creator_name, category, thumbnail_url,
+             submitter_name, upvotes, approved, featured, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, COALESCE($13::timestamptz, NOW()))
+           ON CONFLICT (id) DO UPDATE SET
+             title = EXCLUDED.title, clip_url = EXCLUDED.clip_url, embed_url = EXCLUDED.embed_url,
+             creator_name = EXCLUDED.creator_name, category = EXCLUDED.category, thumbnail_url = EXCLUDED.thumbnail_url,
+             submitter_name = EXCLUDED.submitter_name, upvotes = EXCLUDED.upvotes, approved = EXCLUDED.approved,
+             featured = EXCLUDED.featured`,
+          [cl.id, cl.title, cl.clipUrl, cl.embedUrl, (cl as any).creatorId ?? null, cl.creatorName ?? null,
+           cl.category ?? null, (cl as any).thumbnailUrl ?? null, cl.submitterName ?? null, cl.upvotes ?? 0,
+           cl.approved !== false, !!cl.featured, cl.createdAt || null]
+        );
+      }
+
+      for (const r of this.memoryDb.streamerRequests || []) {
+        await client.query(
+          `INSERT INTO streamer_requests (id, username, character_name, faction, bio, creator_code, status, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8::timestamptz, NOW()))
+           ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, character_name = EXCLUDED.character_name,
+             faction = EXCLUDED.faction, bio = EXCLUDED.bio, creator_code = EXCLUDED.creator_code`,
+          [r.id, r.username, r.characterName, r.faction, r.bio, r.creatorCode ?? null, r.status, r.createdAt || null]
+        );
+      }
+
+      for (const ev of this.memoryDb.analyticsEvents || []) {
+        if (this.syncedLogIds.has(ev.id)) continue;
+        await client.query(
+          `INSERT INTO analytics_events (id, event_type, creator_id, metadata, created_at)
+           VALUES ($1,$2,$3,$4::jsonb, COALESCE($5::timestamptz, NOW())) ON CONFLICT (id) DO NOTHING`,
+          [ev.id, ev.eventType, ev.creatorId ?? null, JSON.stringify(ev.metadata ?? {}), ev.createdAt || null]
+        );
+        this.syncedLogIds.add(ev.id);
+      }
+
+      for (const log of this.memoryDb.auditLogs || []) {
+        if (this.syncedLogIds.has(log.id)) continue;
+        await client.query(
+          `INSERT INTO audit_logs (id, admin_id, admin_email, action, entity_type, entity_id, metadata, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb, COALESCE($8::timestamptz, NOW())) ON CONFLICT (id) DO NOTHING`,
+          [log.id, log.adminId, log.adminEmail, log.action, log.entityType, log.entityId,
+           JSON.stringify(log.metadata ?? {}), log.createdAt || null]
+        );
+        this.syncedLogIds.add(log.id);
+      }
+
+      await client.query('COMMIT');
+    } catch (err: any) {
+      try { await client.query('ROLLBACK'); } catch { /* ignore */ }
+      throw err;
+    } finally {
+      client.release();
     }
+  }
+
+  private async deleteCreatorFromPostgres(id: string): Promise<void> {
+    if (!this.pgPool) return;
+    await this.pgPool.query('DELETE FROM creators WHERE id = $1', [id]);
+  }
+
+  private async deleteClipFromPostgres(id: string): Promise<void> {
+    if (!this.pgPool) return;
+    await this.pgPool.query('DELETE FROM clips WHERE id = $1', [id]);
   }
 
   private async refreshAdminsFromPostgres(): Promise<void> {
@@ -881,6 +1022,9 @@ class DatabaseManager {
     this.memoryDb.platformAccounts = this.memoryDb.platformAccounts.filter(pa => pa.creatorId !== id);
     this.memoryDb.liveStreams = this.memoryDb.liveStreams.filter(ls => ls.creatorId !== id);
     this.scheduleSave();
+    if (this.isPostgres) {
+      await this.deleteCreatorFromPostgres(id);
+    }
     return this.memoryDb.creators.length < initialLen;
   }
 
@@ -1295,6 +1439,9 @@ class DatabaseManager {
     if (idx === -1) return false;
     this.memoryDb.clips.splice(idx, 1);
     this.scheduleSave();
+    if (this.isPostgres) {
+      await this.deleteClipFromPostgres(id);
+    }
     return true;
   }
 
@@ -1393,20 +1540,29 @@ class DatabaseManager {
     if (Array.isArray(importedData.platformAccounts)) {
       this.memoryDb.platformAccounts = importedData.platformAccounts;
     }
+    if (Array.isArray(importedData.liveStreams)) {
+      this.memoryDb.liveStreams = importedData.liveStreams;
+    }
+    if (Array.isArray(importedData.clips)) {
+      this.memoryDb.clips = importedData.clips;
+    }
+    if (Array.isArray(importedData.streamerRequests)) {
+      this.memoryDb.streamerRequests = importedData.streamerRequests;
+    }
+    if (Array.isArray(importedData.analyticsEvents)) {
+      this.memoryDb.analyticsEvents = importedData.analyticsEvents;
+    }
+    if (Array.isArray(importedData.auditLogs)) {
+      this.memoryDb.auditLogs = importedData.auditLogs;
+    }
     if (Array.isArray(importedData.adminUsers) && importedData.adminUsers.length > 0) {
       this.memoryDb.adminUsers = importedData.adminUsers;
-      if (this.isPostgres) {
-        for (const admin of this.memoryDb.adminUsers) {
-          if (admin.passwordHash) {
-            await this.persistAdminToPostgres(admin);
-          }
-        }
-      }
     }
     if (importedData.settings && typeof importedData.settings === 'object') {
       this.memoryDb.settings = { ...this.memoryDb.settings, ...importedData.settings };
     }
 
+    await this.syncToPostgres();
     this.saveToFileImmediate();
     return {
       success: true,
