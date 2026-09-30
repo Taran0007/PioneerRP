@@ -8,7 +8,7 @@ import { serverStatusService } from '../services/serverStatusService.js';
 import { discordWebhook } from '../services/discordWebhook.js';
 
 const router = Router();
-const JWT_SECRET = process.env.SESSION_SECRET || 'pioneer_rp_live_secret_session_key_change_in_production';
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'pioneer_rp_live_secret_session_key_change_in_production';
 
 // Client SSE connections
 const sseClients = new Set<Response>();

@@ -3,6 +3,7 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "regions": ["sin1"],
   "rewrites": [
     {
       "source": "/api/(.*)",
