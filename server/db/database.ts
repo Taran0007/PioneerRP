@@ -1,0 +1,902 @@
+import fs from 'fs';
+import path from 'path';
+import bcrypt from 'bcryptjs';
+import pg from 'pg';
+import { Creator, PlatformAccount, LiveStream, AdminUser, SiteSettings, AuditLog } from '../../src/types/index.js';
+
+const { Pool } = pg;
+
+interface DatabaseSchema {
+  creators: Creator[];
+  platformAccounts: PlatformAccount[];
+  liveStreams: LiveStream[];
+  adminUsers: (AdminUser & { passwordHash: string })[];
+  settings: Record<string, string>;
+  analyticsEvents: Array<{
+    id: string;
+    eventType: string;
+    creatorId?: string;
+    metadata?: any;
+    createdAt: string;
+  }>;
+  auditLogs: AuditLog[];
+}
+
+const DATA_DIR = process.env.VERCEL
+  ? path.resolve('/tmp', 'data')
+  : path.resolve(process.cwd(), 'data');
+const DB_FILE = path.join(DATA_DIR, 'pioneer_live.json');
+
+// Initial 4 Seed Creators specified by Pioneer RP
+const INITIAL_CREATORS_SEED = [
+  {
+    username: 'TJ_SINGH007',
+    displayName: 'TJ SINGH',
+    platform: 'TWITCH' as const,
+    featured: true,
+    featuredOrder: 1,
+    creatorCode: 'INDIA',
+    creatorCodeDescription: 'Use code INDIA for exclusive server rewards and discount at the store',
+    creatorStoreUrl: 'https://pioneer-rp-18.tebex.io/',
+    isPioneerStreamer: true,
+    characterName: 'Tejinder "TJ" Singh',
+    gangName: 'Purple Nine',
+    bio: 'Lead officer and underworld kingpin in the streets of Pioneer RP. High-stakes chases and intense roleplay storylines.',
+  },
+  {
+    username: 'apocalypticsith',
+    displayName: 'ApocalypticSith',
+    platform: 'TWITCH' as const,
+    featured: false,
+    featuredOrder: 2,
+    isPioneerStreamer: true,
+    characterName: 'Darth Silas',
+    gangName: 'Syndicate',
+    bio: 'Pioneer RP veteran roleplayer. Exploring tactical ops, business empires, and dramatic storylines.',
+  },
+  {
+    username: 'ithebunny',
+    displayName: 'ithebunny',
+    platform: 'TWITCH' as const,
+    featured: false,
+    featuredOrder: 3,
+    isPioneerStreamer: true,
+    characterName: 'Bunny Foster',
+    gangName: 'Civilian & EMS',
+    bio: 'Medical dispatcher, civilian storylines, and EMS director in Pioneer RP.',
+  },
+  {
+    username: 'moxiemoses',
+    displayName: 'Moxie Moses',
+    platform: 'TWITCH' as const,
+    featured: false,
+    featuredOrder: 4,
+    isPioneerStreamer: true,
+    characterName: 'Moxie Moses',
+    gangName: 'Independent Crew',
+    bio: 'High-speed getaways, street racing, and criminal enterprise storylines across Los Santos.',
+  },
+];
+
+const DEFAULT_SETTINGS: Record<string, string> = {
+  siteName: 'Pioneer RP Live',
+  siteTagline: 'The city is live. Watch the stories unfold.',
+  discordUrl: process.env.PIONEER_DISCORD_URL || 'https://discord.gg/pioneerrp',
+  storeUrl: process.env.PIONEER_STORE_URL || 'https://pioneer-rp-18.tebex.io/',
+  serverJoinUrl: process.env.PIONEER_JOIN_URL || 'fivem://connect/cfx.re/join/pioneer-rp',
+  serverStatusApiUrl: process.env.SERVER_STATUS_API_URL || '',
+  twitchPollingIntervalSeconds: '45',
+  liveRefreshIntervalSeconds: '30',
+  seoTitle: 'Pioneer RP Live — Watch Pioneer RP Streamers',
+  seoDescription: 'The official streaming and creator hub for Pioneer RP. Real-time Twitch stream monitoring, featured creators, creator codes, and FiveM community directory.',
+  heroHeadline: 'PIONEER RP LIVE',
+  heroSubheading: 'The city is live. Watch the stories unfold.',
+  twitchClientId: process.env.TWITCH_CLIENT_ID || 'gp762nuuoqcoxypju8c569th9wz7q5',
+  twitchClientSecret: process.env.TWITCH_CLIENT_SECRET || '',
+  lastSyncAt: '',
+  syncStatus: 'idle',
+  syncErrorMessage: '',
+};
+
+class DatabaseManager {
+  private memoryDb: DatabaseSchema = {
+    creators: [],
+    platformAccounts: [],
+    liveStreams: [],
+    adminUsers: [],
+    settings: { ...DEFAULT_SETTINGS },
+    analyticsEvents: [],
+    auditLogs: [],
+  };
+
+  private pgPool: pg.Pool | null = null;
+  private isPostgres = false;
+  private saveTimeout: NodeJS.Timeout | null = null;
+
+  async init(): Promise<void> {
+    if (process.env.DATABASE_URL) {
+      try {
+        const pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+          connectionTimeoutMillis: 3000,
+        });
+        const client = await pool.connect();
+        client.release();
+        this.pgPool = pool;
+        this.isPostgres = true;
+        console.log('[DB] Connected to PostgreSQL instance.');
+        await this.initPostgresSchema();
+      } catch (err: any) {
+        console.warn('[DB] PostgreSQL connection failed, falling back to embedded database:', err.message);
+        this.isPostgres = false;
+      }
+    }
+
+    if (!this.isPostgres) {
+      this.initFileDb();
+    }
+
+    await this.seedInitialData();
+  }
+
+  private initFileDb() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const raw = fs.readFileSync(DB_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        this.memoryDb = {
+          ...this.memoryDb,
+          ...parsed,
+          settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+        };
+        // Backfill lastLiveAt if not present
+        const sampleHoursAgo = [2.5, 6, 19, 41];
+        this.memoryDb.creators.forEach((c, i) => {
+          if (!c.lastLiveAt) {
+            c.lastLiveAt = new Date(Date.now() - (sampleHoursAgo[i % sampleHoursAgo.length] * 3600 * 1000)).toISOString();
+          }
+        });
+        console.log(`[DB] Loaded embedded database with ${this.memoryDb.creators.length} creators.`);
+      } catch (err) {
+        console.error('[DB] Failed reading DB file, creating fresh store:', err);
+        this.saveToFileImmediate();
+      }
+    } else {
+      this.saveToFileImmediate();
+    }
+  }
+
+  private saveToFileImmediate() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const tmp = `${DB_FILE}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(this.memoryDb, null, 2), 'utf-8');
+      fs.renameSync(tmp, DB_FILE);
+    } catch (err) {
+      console.error('[DB] Failed saving database to file:', err);
+    }
+  }
+
+  private scheduleSave() {
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(() => {
+      this.saveToFileImmediate();
+    }, 100);
+  }
+
+  private async initPostgresSchema() {
+    if (!this.pgPool) return;
+    await this.pgPool.query(`
+      CREATE TABLE IF NOT EXISTS creators (
+        id VARCHAR(64) PRIMARY KEY,
+        slug VARCHAR(128) UNIQUE NOT NULL,
+        display_name VARCHAR(128) NOT NULL,
+        character_name VARCHAR(128),
+        gang_name VARCHAR(128),
+        bio TEXT,
+        profile_image_url TEXT,
+        banner_url TEXT,
+        featured BOOLEAN DEFAULT FALSE,
+        featured_order INT DEFAULT 999,
+        creator_code VARCHAR(64),
+        creator_code_description TEXT,
+        creator_store_url TEXT,
+        verified BOOLEAN DEFAULT TRUE,
+        enabled BOOLEAN DEFAULT TRUE,
+        is_pioneer_streamer BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS platform_accounts (
+        id VARCHAR(64) PRIMARY KEY,
+        creator_id VARCHAR(64) REFERENCES creators(id) ON DELETE CASCADE,
+        platform VARCHAR(32) NOT NULL,
+        platform_user_id VARCHAR(128) NOT NULL,
+        username VARCHAR(128) NOT NULL,
+        display_name VARCHAR(128) NOT NULL,
+        channel_url TEXT NOT NULL,
+        profile_image_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT unique_platform_user UNIQUE (platform, platform_user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS live_streams (
+        id VARCHAR(64) PRIMARY KEY,
+        creator_id VARCHAR(64) REFERENCES creators(id) ON DELETE CASCADE,
+        platform_account_id VARCHAR(64) REFERENCES platform_accounts(id) ON DELETE CASCADE,
+        platform VARCHAR(32) NOT NULL,
+        platform_stream_id VARCHAR(128) NOT NULL,
+        title TEXT NOT NULL,
+        category VARCHAR(128) NOT NULL,
+        viewer_count INT DEFAULT 0,
+        thumbnail_url TEXT NOT NULL,
+        started_at TIMESTAMPTZ NOT NULL,
+        ended_at TIMESTAMPTZ,
+        is_live BOOLEAN DEFAULT FALSE,
+        last_seen_at TIMESTAMPTZ DEFAULT NOW(),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id VARCHAR(64) PRIMARY KEY,
+        email VARCHAR(128) UNIQUE NOT NULL,
+        username VARCHAR(128) NOT NULL,
+        password_hash TEXT NOT NULL,
+        role VARCHAR(32) DEFAULT 'admin',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(128) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id VARCHAR(64) PRIMARY KEY,
+        event_type VARCHAR(64) NOT NULL,
+        creator_id VARCHAR(64),
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id VARCHAR(64) PRIMARY KEY,
+        admin_id VARCHAR(64) NOT NULL,
+        admin_email VARCHAR(128) NOT NULL,
+        action VARCHAR(128) NOT NULL,
+        entity_type VARCHAR(64) NOT NULL,
+        entity_id VARCHAR(64) NOT NULL,
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+  }
+
+  private async seedInitialData() {
+    // 1. Ensure primary superadmin with email "Trnjeet@gmail.com" / "TJSINGH" and password "Taran@&007"
+    const hasAdmin = this.memoryDb.adminUsers.some(
+      a => a.email.toLowerCase() === 'trnjeet@gmail.com' || a.username.toLowerCase() === 'tjsingh'
+    );
+
+    // Remove obsolete old placeholder accounts
+    this.memoryDb.adminUsers = this.memoryDb.adminUsers.filter(
+      a => a.email.toLowerCase() !== 'admin@pioneerrp.live' && a.username.toLowerCase() !== 'pioneeradmin'
+    );
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash('Taran@&007', salt);
+
+    if (!hasAdmin) {
+      const tjAdmin: AdminUser & { passwordHash: string } = {
+        id: 'admin_tjsingh_01',
+        email: 'Trnjeet@gmail.com',
+        username: 'TJSINGH',
+        role: 'superadmin',
+        passwordHash,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      this.memoryDb.adminUsers.unshift(tjAdmin);
+      this.scheduleSave();
+      console.log('[DB] Superadmin account initialized: TJSINGH (Trnjeet@gmail.com)');
+    } else {
+      const tjAdmin = this.memoryDb.adminUsers.find(
+        a => a.email.toLowerCase() === 'trnjeet@gmail.com' || a.username.toLowerCase() === 'tjsingh' || a.email.toLowerCase() === 'tjsingh@pioneerrp.live'
+      );
+      if (tjAdmin) {
+        tjAdmin.email = 'Trnjeet@gmail.com';
+        tjAdmin.username = 'TJSINGH';
+        tjAdmin.passwordHash = passwordHash;
+        tjAdmin.role = 'superadmin';
+        this.scheduleSave();
+        console.log('[DB] Superadmin updated to Trnjeet@gmail.com / TJSINGH');
+      }
+    }
+
+    // 2. Seed initial creators if table is empty
+    if (this.memoryDb.creators.length === 0) {
+      console.log('[DB] Seeding initial Pioneer RP creators...');
+      for (const item of INITIAL_CREATORS_SEED) {
+        const creatorId = `creator_${item.username.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const slug = item.username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const now = new Date().toISOString();
+
+        const creator: Creator = {
+          id: creatorId,
+          slug,
+          displayName: item.displayName,
+          characterName: item.characterName,
+          gangName: item.gangName,
+          bio: item.bio,
+          profileImageUrl: `https://avatar.vercel.sh/${item.username}.png`,
+          bannerUrl: undefined,
+          featured: item.featured,
+          featuredOrder: item.featuredOrder,
+          creatorCode: item.creatorCode,
+          creatorCodeDescription: item.creatorCodeDescription,
+          creatorStoreUrl: item.creatorStoreUrl,
+          verified: true,
+          enabled: true,
+          isPioneerStreamer: item.isPioneerStreamer,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const platformAccountId = `plat_twitch_${item.username.toLowerCase()}`;
+        const platformAccount: PlatformAccount = {
+          id: platformAccountId,
+          creatorId,
+          platform: 'TWITCH',
+          platformUserId: `twitch_seed_${item.username.toLowerCase()}`,
+          username: item.username,
+          displayName: item.displayName,
+          channelUrl: `https://twitch.tv/${item.username}`,
+          profileImageUrl: creator.profileImageUrl,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        this.memoryDb.creators.push(creator);
+        this.memoryDb.platformAccounts.push(platformAccount);
+      }
+      this.scheduleSave();
+    }
+  }
+
+  // --- CREATOR METHODS ---
+  async getCreators(options?: {
+    enabledOnly?: boolean;
+    featuredOnly?: boolean;
+    isLiveOnly?: boolean;
+    platform?: string;
+    search?: string;
+  }): Promise<Creator[]> {
+    let result = [...this.memoryDb.creators];
+
+    if (options?.enabledOnly !== false) {
+      result = result.filter(c => c.enabled);
+    }
+
+    if (options?.featuredOnly) {
+      result = result.filter(c => c.featured);
+    }
+
+    // Enrich with platform account and live stream
+    result = result.map(creator => {
+      const platformAccount = this.memoryDb.platformAccounts.find(pa => pa.creatorId === creator.id);
+      const currentStream = this.memoryDb.liveStreams.find(ls => ls.creatorId === creator.id && ls.isLive);
+      return {
+        ...creator,
+        platformAccount,
+        currentStream: currentStream || null,
+      };
+    });
+
+    if (options?.isLiveOnly) {
+      result = result.filter(c => !!c.currentStream?.isLive);
+    }
+
+    if (options?.search) {
+      const q = options.search.toLowerCase().trim();
+      result = result.filter(c => {
+        return (
+          c.displayName.toLowerCase().includes(q) ||
+          c.slug.toLowerCase().includes(q) ||
+          (c.platformAccount?.username && c.platformAccount.username.toLowerCase().includes(q)) ||
+          (c.characterName && c.characterName.toLowerCase().includes(q)) ||
+          (c.gangName && c.gangName.toLowerCase().includes(q)) ||
+          (c.creatorCode && c.creatorCode.toLowerCase().includes(q))
+        );
+      });
+    }
+
+    return result;
+  }
+
+  async getCreatorBySlug(slug: string): Promise<Creator | null> {
+    const creator = this.memoryDb.creators.find(c => c.slug.toLowerCase() === slug.toLowerCase());
+    if (!creator) return null;
+    const platformAccount = this.memoryDb.platformAccounts.find(pa => pa.creatorId === creator.id);
+    const currentStream = this.memoryDb.liveStreams.find(ls => ls.creatorId === creator.id && ls.isLive);
+    return {
+      ...creator,
+      platformAccount,
+      currentStream: currentStream || null,
+    };
+  }
+
+  async getCreatorById(id: string): Promise<Creator | null> {
+    const creator = this.memoryDb.creators.find(c => c.id === id);
+    if (!creator) return null;
+    const platformAccount = this.memoryDb.platformAccounts.find(pa => pa.creatorId === creator.id);
+    const currentStream = this.memoryDb.liveStreams.find(ls => ls.creatorId === creator.id && ls.isLive);
+    return {
+      ...creator,
+      platformAccount,
+      currentStream: currentStream || null,
+    };
+  }
+
+  async createCreator(data: {
+    displayName: string;
+    username: string;
+    platform: 'TWITCH' | 'KICK';
+    platformUserId: string;
+    channelUrl: string;
+    profileImageUrl?: string;
+    characterName?: string;
+    gangName?: string;
+    bio?: string;
+    featured?: boolean;
+    featuredOrder?: number;
+    creatorCode?: string;
+    creatorCodeDescription?: string;
+    creatorStoreUrl?: string;
+    verified?: boolean;
+    enabled?: boolean;
+  }): Promise<Creator> {
+    // Check if platform account already exists
+    const existingAcct = this.memoryDb.platformAccounts.find(
+      pa => pa.platform === data.platform && pa.username.toLowerCase() === data.username.toLowerCase()
+    );
+    if (existingAcct) {
+      throw new Error(`Creator with ${data.platform} account "${data.username}" already exists.`);
+    }
+
+    const creatorId = `creator_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    let baseSlug = (data.username || data.displayName).toLowerCase().replace(/[^a-z0-9]/g, '-');
+    let slug = baseSlug;
+    let counter = 1;
+    while (this.memoryDb.creators.some(c => c.slug === slug)) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
+    const now = new Date().toISOString();
+    const creator: Creator = {
+      id: creatorId,
+      slug,
+      displayName: data.displayName || data.username,
+      characterName: data.characterName,
+      gangName: data.gangName,
+      bio: data.bio,
+      profileImageUrl: data.profileImageUrl,
+      featured: !!data.featured,
+      featuredOrder: data.featuredOrder ?? 999,
+      creatorCode: data.creatorCode,
+      creatorCodeDescription: data.creatorCodeDescription,
+      creatorStoreUrl: data.creatorStoreUrl,
+      verified: data.verified !== false,
+      enabled: data.enabled !== false,
+      isPioneerStreamer: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const platformAccount: PlatformAccount = {
+      id: `plat_${data.platform.toLowerCase()}_${Date.now()}`,
+      creatorId,
+      platform: data.platform,
+      platformUserId: data.platformUserId,
+      username: data.username,
+      displayName: data.displayName || data.username,
+      channelUrl: data.channelUrl,
+      profileImageUrl: data.profileImageUrl,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.memoryDb.creators.push(creator);
+    this.memoryDb.platformAccounts.push(platformAccount);
+    this.scheduleSave();
+
+    return {
+      ...creator,
+      platformAccount,
+      currentStream: null,
+    };
+  }
+
+  async updateCreator(
+    id: string,
+    updates: Partial<Creator> & {
+      username?: string;
+      platformUserId?: string;
+      channelUrl?: string;
+    }
+  ): Promise<Creator | null> {
+    const creatorIndex = this.memoryDb.creators.findIndex(c => c.id === id);
+    if (creatorIndex === -1) return null;
+
+    const existing = this.memoryDb.creators[creatorIndex];
+    const now = new Date().toISOString();
+
+    const updatedCreator: Creator = {
+      ...existing,
+      ...updates,
+      updatedAt: now,
+    };
+
+    this.memoryDb.creators[creatorIndex] = updatedCreator;
+
+    // Update platform account if relevant
+    const paIndex = this.memoryDb.platformAccounts.findIndex(pa => pa.creatorId === id);
+    if (paIndex !== -1) {
+      const pa = this.memoryDb.platformAccounts[paIndex];
+      this.memoryDb.platformAccounts[paIndex] = {
+        ...pa,
+        username: updates.username || pa.username,
+        channelUrl: updates.channelUrl || pa.channelUrl,
+        platformUserId: updates.platformUserId || pa.platformUserId,
+        profileImageUrl: updates.profileImageUrl || pa.profileImageUrl,
+        updatedAt: now,
+      };
+    }
+
+    this.scheduleSave();
+    return this.getCreatorById(id);
+  }
+
+  async deleteCreator(id: string): Promise<boolean> {
+    const initialLen = this.memoryDb.creators.length;
+    this.memoryDb.creators = this.memoryDb.creators.filter(c => c.id !== id);
+    this.memoryDb.platformAccounts = this.memoryDb.platformAccounts.filter(pa => pa.creatorId !== id);
+    this.memoryDb.liveStreams = this.memoryDb.liveStreams.filter(ls => ls.creatorId !== id);
+    this.scheduleSave();
+    return this.memoryDb.creators.length < initialLen;
+  }
+
+  // --- FEATURED MANAGEMENT ---
+  async updateFeaturedOrder(orderList: Array<{ id: string; featuredOrder: number; featured: boolean }>): Promise<void> {
+    for (const item of orderList) {
+      const c = this.memoryDb.creators.find(x => x.id === item.id);
+      if (c) {
+        c.featuredOrder = item.featuredOrder;
+        c.featured = item.featured;
+        c.updatedAt = new Date().toISOString();
+      }
+    }
+    this.scheduleSave();
+  }
+
+  // --- PLATFORM ACCOUNTS ---
+  async getAllPlatformAccounts(platform: 'TWITCH' | 'KICK' = 'TWITCH'): Promise<Array<PlatformAccount & { creator: Creator }>> {
+    return this.memoryDb.platformAccounts
+      .filter(pa => pa.platform === platform)
+      .map(pa => {
+        const creator = this.memoryDb.creators.find(c => c.id === pa.creatorId)!;
+        return {
+          ...pa,
+          creator,
+        };
+      })
+      .filter(pa => !!pa.creator);
+  }
+
+  // --- LIVE STREAMS & SYNC ---
+  async upsertLiveStream(streamData: {
+    creatorId: string;
+    platformAccountId: string;
+    platform: 'TWITCH' | 'KICK';
+    platformStreamId: string;
+    title: string;
+    category: string;
+    viewerCount: number;
+    thumbnailUrl: string;
+    startedAt: string;
+    isLive: boolean;
+  }): Promise<LiveStream> {
+    const now = new Date().toISOString();
+    let stream = this.memoryDb.liveStreams.find(
+      ls => ls.platformAccountId === streamData.platformAccountId && ls.isLive
+    );
+
+    if (stream) {
+      stream.title = streamData.title;
+      stream.category = streamData.category;
+      stream.viewerCount = streamData.viewerCount;
+      stream.thumbnailUrl = streamData.thumbnailUrl;
+      stream.isLive = streamData.isLive;
+      stream.lastSeenAt = now;
+      stream.updatedAt = now;
+    } else {
+      stream = {
+        id: `stream_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        creatorId: streamData.creatorId,
+        platformAccountId: streamData.platformAccountId,
+        platform: streamData.platform,
+        platformStreamId: streamData.platformStreamId,
+        title: streamData.title,
+        category: streamData.category,
+        viewerCount: streamData.viewerCount,
+        thumbnailUrl: streamData.thumbnailUrl,
+        startedAt: streamData.startedAt,
+        isLive: streamData.isLive,
+        lastSeenAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.memoryDb.liveStreams.push(stream);
+    }
+
+    if (streamData.isLive) {
+      const creator = this.memoryDb.creators.find(c => c.id === streamData.creatorId);
+      if (creator) {
+        creator.lastLiveAt = now;
+      }
+    }
+
+    this.scheduleSave();
+    return stream;
+  }
+
+  async markPlatformAccountOffline(platformAccountId: string): Promise<void> {
+    const now = new Date().toISOString();
+    const liveStreams = this.memoryDb.liveStreams.filter(
+      ls => ls.platformAccountId === platformAccountId && ls.isLive
+    );
+    for (const ls of liveStreams) {
+      ls.isLive = false;
+      ls.endedAt = now;
+      ls.lastSeenAt = now;
+      ls.updatedAt = now;
+
+      const creator = this.memoryDb.creators.find(c => c.id === ls.creatorId);
+      if (creator) {
+        creator.lastLiveAt = now;
+      }
+    }
+    if (liveStreams.length > 0) {
+      this.scheduleSave();
+    }
+  }
+
+  async getRecentStreamHistory(creatorId: string, limit = 5): Promise<LiveStream[]> {
+    return this.memoryDb.liveStreams
+      .filter(ls => ls.creatorId === creatorId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+      .slice(0, limit);
+  }
+
+  // --- SETTINGS ---
+  getSettings(): SiteSettings {
+    const s = this.memoryDb.settings;
+    return {
+      siteName: s.siteName || DEFAULT_SETTINGS.siteName,
+      siteTagline: s.siteTagline || DEFAULT_SETTINGS.siteTagline,
+      discordUrl: s.discordUrl || DEFAULT_SETTINGS.discordUrl,
+      storeUrl: s.storeUrl || DEFAULT_SETTINGS.storeUrl,
+      serverJoinUrl: s.serverJoinUrl || DEFAULT_SETTINGS.serverJoinUrl,
+      serverStatusApiUrl: s.serverStatusApiUrl || '',
+      twitchPollingIntervalSeconds: parseInt(s.twitchPollingIntervalSeconds || '45', 10),
+      liveRefreshIntervalSeconds: parseInt(s.liveRefreshIntervalSeconds || '30', 10),
+      seoTitle: s.seoTitle || DEFAULT_SETTINGS.seoTitle,
+      seoDescription: s.seoDescription || DEFAULT_SETTINGS.seoDescription,
+      heroHeadline: s.heroHeadline || DEFAULT_SETTINGS.heroHeadline,
+      heroSubheading: s.heroSubheading || DEFAULT_SETTINGS.heroSubheading,
+      twitchClientIdConfigured: !!(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET),
+      lastSyncAt: s.lastSyncAt || null,
+      syncStatus: (s.syncStatus as any) || 'idle',
+      syncErrorMessage: s.syncErrorMessage || null,
+    };
+  }
+
+  updateSettings(updates: Partial<SiteSettings>): SiteSettings {
+    for (const [k, v] of Object.entries(updates)) {
+      if (v !== undefined) {
+        this.memoryDb.settings[k] = String(v);
+      }
+    }
+    this.scheduleSave();
+    return this.getSettings();
+  }
+
+  // --- ANALYTICS ---
+  async trackAnalyticsEvent(eventType: string, creatorId?: string, metadata?: any): Promise<void> {
+    this.memoryDb.analyticsEvents.push({
+      id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      eventType,
+      creatorId,
+      metadata,
+      createdAt: new Date().toISOString(),
+    });
+    // Keep max 10000 events to prevent memory bloating
+    if (this.memoryDb.analyticsEvents.length > 10000) {
+      this.memoryDb.analyticsEvents = this.memoryDb.analyticsEvents.slice(-5000);
+    }
+    this.scheduleSave();
+  }
+
+  getAnalyticsSummary(): {
+    totalCreators: number;
+    liveCreators: number;
+    featuredCreators: number;
+    totalCurrentViewers: number;
+    totalWatchClicks: number;
+    totalProfileViews: number;
+    totalCodeClicks: number;
+    totalStoreClicks: number;
+    topCreatorsByClicks: Array<{
+      creatorId: string;
+      displayName: string;
+      username: string;
+      watchClicks: number;
+      codeClicks: number;
+    }>;
+  } {
+    const creators = this.memoryDb.creators.filter(c => c.enabled);
+    const liveStreams = this.memoryDb.liveStreams.filter(ls => ls.isLive);
+    const totalViewers = liveStreams.reduce((acc, curr) => acc + (curr.viewerCount || 0), 0);
+
+    const events = this.memoryDb.analyticsEvents;
+    const watchClicks = events.filter(e => e.eventType === 'watch_click').length;
+    const profileViews = events.filter(e => e.eventType === 'profile_view').length;
+    const codeClicks = events.filter(e => e.eventType === 'creator_code_click').length;
+    const storeClicks = events.filter(e => e.eventType === 'store_click').length;
+
+    // Per creator stats
+    const creatorStatsMap: Record<string, { watchClicks: number; codeClicks: number }> = {};
+    for (const ev of events) {
+      if (ev.creatorId) {
+        if (!creatorStatsMap[ev.creatorId]) {
+          creatorStatsMap[ev.creatorId] = { watchClicks: 0, codeClicks: 0 };
+        }
+        if (ev.eventType === 'watch_click') creatorStatsMap[ev.creatorId].watchClicks++;
+        if (ev.eventType === 'creator_code_click') creatorStatsMap[ev.creatorId].codeClicks++;
+      }
+    }
+
+    const topCreators = creators
+      .map(c => {
+        const pa = this.memoryDb.platformAccounts.find(p => p.creatorId === c.id);
+        const stats = creatorStatsMap[c.id] || { watchClicks: 0, codeClicks: 0 };
+        return {
+          creatorId: c.id,
+          displayName: c.displayName,
+          username: pa?.username || c.slug,
+          watchClicks: stats.watchClicks,
+          codeClicks: stats.codeClicks,
+        };
+      })
+      .sort((a, b) => b.watchClicks + b.codeClicks - (a.watchClicks + a.codeClicks))
+      .slice(0, 10);
+
+    return {
+      totalCreators: creators.length,
+      liveCreators: liveStreams.length,
+      featuredCreators: creators.filter(c => c.featured).length,
+      totalCurrentViewers: totalViewers,
+      totalWatchClicks: watchClicks,
+      totalProfileViews: profileViews,
+      totalCodeClicks: codeClicks,
+      totalStoreClicks: storeClicks,
+      topCreatorsByClicks: topCreators,
+    };
+  }
+
+  // --- AUDIT LOGS ---
+  async logAudit(entry: {
+    adminId: string;
+    adminEmail: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    metadata?: any;
+  }): Promise<void> {
+    this.memoryDb.auditLogs.unshift({
+      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      adminId: entry.adminId,
+      adminEmail: entry.adminEmail,
+      action: entry.action,
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      metadata: entry.metadata,
+      createdAt: new Date().toISOString(),
+    });
+    if (this.memoryDb.auditLogs.length > 500) {
+      this.memoryDb.auditLogs = this.memoryDb.auditLogs.slice(0, 500);
+    }
+    this.scheduleSave();
+  }
+
+  getAuditLogs(limit = 50): AuditLog[] {
+    return this.memoryDb.auditLogs.slice(0, limit);
+  }
+
+  // --- ADMIN AUTH ---
+  async getAdminByEmail(email: string): Promise<(AdminUser & { passwordHash: string }) | null> {
+    return this.memoryDb.adminUsers.find(a => a.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async getAdminByEmailOrUsername(identifier: string): Promise<(AdminUser & { passwordHash: string }) | null> {
+    const clean = identifier.trim().toLowerCase();
+    return this.memoryDb.adminUsers.find(
+      a => a.email.toLowerCase() === clean || a.username.toLowerCase() === clean
+    ) || null;
+  }
+
+  async getAdminById(id: string): Promise<AdminUser | null> {
+    const a = this.memoryDb.adminUsers.find(u => u.id === id);
+    if (!a) return null;
+    const { passwordHash, ...rest } = a;
+    return rest;
+  }
+
+  async getAllAdmins(): Promise<AdminUser[]> {
+    return this.memoryDb.adminUsers.map(({ passwordHash, ...rest }) => rest);
+  }
+
+  async createAdmin(email: string, username: string, passwordPlain: string, role: string = 'admin'): Promise<AdminUser> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = username.trim();
+    const existingEmail = this.memoryDb.adminUsers.find(a => a.email.toLowerCase() === cleanEmail);
+    if (existingEmail) {
+      throw new Error('An admin with this email already exists.');
+    }
+    const existingUsername = this.memoryDb.adminUsers.find(a => a.username.toLowerCase() === cleanUsername.toLowerCase());
+    if (existingUsername) {
+      throw new Error('An admin with this username already exists.');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(passwordPlain, salt);
+    const resolvedRole = (role === 'superadmin' || role === 'moderator' ? role : 'admin') as 'superadmin' | 'admin' | 'moderator';
+    const newAdmin: AdminUser & { passwordHash: string } = {
+      id: `admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      email: cleanEmail,
+      username: cleanUsername,
+      role: resolvedRole,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.memoryDb.adminUsers.push(newAdmin);
+    this.scheduleSave();
+    const { passwordHash: _, ...publicAdmin } = newAdmin;
+    return publicAdmin;
+  }
+
+  async deleteAdmin(id: string): Promise<boolean> {
+    const index = this.memoryDb.adminUsers.findIndex(a => a.id === id);
+    if (index === -1) return false;
+    if (this.memoryDb.adminUsers.length <= 1) {
+      throw new Error('Cannot delete the last remaining administrator.');
+    }
+    this.memoryDb.adminUsers.splice(index, 1);
+    this.scheduleSave();
+    return true;
+  }
+}
+
+export const db = new DatabaseManager();

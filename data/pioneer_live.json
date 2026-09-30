@@ -1,0 +1,384 @@
+{
+  "creators": [
+    {
+      "id": "creator_tjsingh007",
+      "slug": "tj-singh007",
+      "displayName": "TJ SINGH",
+      "characterName": "Tejinder \"TJ\" Singh",
+      "gangName": "Purple Nine",
+      "bio": "Lead officer and underworld kingpin in the streets of Pioneer RP. High-stakes chases and intense roleplay storylines.",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/93257e18-d1ea-4b74-bb3b-c93e136ad8e2-profile_image-300x300.jpeg",
+      "featured": true,
+      "featuredOrder": 1,
+      "creatorCode": "INDIA",
+      "creatorCodeDescription": "Use code INDIA for exclusive server rewards and discount at the store",
+      "creatorStoreUrl": "https://pioneer-rp-18.tebex.io/",
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:24:36.771Z",
+      "platformUserId": "234975883"
+    },
+    {
+      "id": "creator_apocalypticsith",
+      "slug": "apocalypticsith",
+      "displayName": "ApocalypticSith",
+      "characterName": "Darth Silas",
+      "gangName": "Syndicate",
+      "bio": "Pioneer RP veteran roleplayer. Exploring tactical ops, business empires, and dramatic storylines.",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/75042565-2bcd-4f02-8190-9cd1a75abfd1-profile_image-300x300.png",
+      "featured": false,
+      "featuredOrder": 2,
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z",
+      "platformUserId": "88677337"
+    },
+    {
+      "id": "creator_ithebunny",
+      "slug": "ithebunny",
+      "displayName": "ithebunny",
+      "characterName": "Bunny Foster",
+      "gangName": "Civilian & EMS",
+      "bio": "Medical dispatcher, civilian storylines, and EMS director in Pioneer RP.",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/9efbebcd-6cba-4e98-8dca-e40b764ef81e-profile_image-300x300.jpeg",
+      "featured": false,
+      "featuredOrder": 3,
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z",
+      "platformUserId": "774344954"
+    },
+    {
+      "id": "creator_moxiemoses",
+      "slug": "moxiemoses",
+      "displayName": "Moxie Moses",
+      "characterName": "Moxie Moses",
+      "gangName": "Independent Crew",
+      "bio": "High-speed getaways, street racing, and criminal enterprise storylines across Los Santos.",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/920e3f87-c41c-43d8-969c-81950ada2dbd-profile_image-300x300.png",
+      "featured": false,
+      "featuredOrder": 4,
+      "verified": true,
+      "enabled": true,
+      "isPioneerStreamer": true,
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z",
+      "platformUserId": "175126543"
+    }
+  ],
+  "platformAccounts": [
+    {
+      "id": "plat_twitch_tj_singh007",
+      "creatorId": "creator_tjsingh007",
+      "platform": "TWITCH",
+      "platformUserId": "234975883",
+      "username": "TJ_SINGH007",
+      "displayName": "TJ SINGH",
+      "channelUrl": "https://twitch.tv/TJ_SINGH007",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/93257e18-d1ea-4b74-bb3b-c93e136ad8e2-profile_image-300x300.jpeg",
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z"
+    },
+    {
+      "id": "plat_twitch_apocalypticsith",
+      "creatorId": "creator_apocalypticsith",
+      "platform": "TWITCH",
+      "platformUserId": "88677337",
+      "username": "apocalypticsith",
+      "displayName": "ApocalypticSith",
+      "channelUrl": "https://twitch.tv/apocalypticsith",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/75042565-2bcd-4f02-8190-9cd1a75abfd1-profile_image-300x300.png",
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z"
+    },
+    {
+      "id": "plat_twitch_ithebunny",
+      "creatorId": "creator_ithebunny",
+      "platform": "TWITCH",
+      "platformUserId": "774344954",
+      "username": "ithebunny",
+      "displayName": "ithebunny",
+      "channelUrl": "https://twitch.tv/ithebunny",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/9efbebcd-6cba-4e98-8dca-e40b764ef81e-profile_image-300x300.jpeg",
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z"
+    },
+    {
+      "id": "plat_twitch_moxiemoses",
+      "creatorId": "creator_moxiemoses",
+      "platform": "TWITCH",
+      "platformUserId": "175126543",
+      "username": "moxiemoses",
+      "displayName": "Moxie Moses",
+      "channelUrl": "https://twitch.tv/moxiemoses",
+      "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/920e3f87-c41c-43d8-969c-81950ada2dbd-profile_image-300x300.png",
+      "createdAt": "2026-09-28T12:24:50.678Z",
+      "updatedAt": "2026-09-28T14:22:15.318Z"
+    }
+  ],
+  "liveStreams": [
+    {
+      "id": "stream_1790598290686_t3zu",
+      "creatorId": "creator_tjsingh007",
+      "platformAccountId": "plat_twitch_tj_singh007",
+      "platform": "TWITCH",
+      "platformStreamId": "stream_test_9999",
+      "title": "TEST LIVESTREAM PIONEER RP",
+      "category": "Grand Theft Auto V",
+      "viewerCount": 1540,
+      "thumbnailUrl": "https://example.com/thumb.jpg",
+      "startedAt": "2026-09-28T12:24:50.686Z",
+      "isLive": false,
+      "lastSeenAt": "2026-09-28T12:24:50.686Z",
+      "createdAt": "2026-09-28T12:24:50.686Z",
+      "updatedAt": "2026-09-28T12:24:50.686Z",
+      "endedAt": "2026-09-28T12:24:50.686Z"
+    },
+    {
+      "id": "stream_1790603356643_tro6",
+      "creatorId": "creator_tjsingh007",
+      "platformAccountId": "plat_twitch_tj_singh007",
+      "platform": "TWITCH",
+      "platformStreamId": "stream_test_9999",
+      "title": "TEST LIVESTREAM PIONEER RP",
+      "category": "Grand Theft Auto V",
+      "viewerCount": 1540,
+      "thumbnailUrl": "https://example.com/thumb.jpg",
+      "startedAt": "2026-09-28T13:49:16.642Z",
+      "isLive": false,
+      "lastSeenAt": "2026-09-28T13:49:16.643Z",
+      "createdAt": "2026-09-28T13:49:16.643Z",
+      "updatedAt": "2026-09-28T13:49:16.643Z",
+      "endedAt": "2026-09-28T13:49:16.643Z"
+    },
+    {
+      "id": "stream_1790605335491_glzg",
+      "creatorId": "creator_apocalypticsith",
+      "platformAccountId": "plat_twitch_apocalypticsith",
+      "platform": "TWITCH",
+      "platformStreamId": "320425710174",
+      "title": "Last days of subtember - Pioneer RP - USE CODE DEMON - EPISODE 16 - P9 Leader",
+      "category": "Grand Theft Auto V",
+      "viewerCount": 24,
+      "thumbnailUrl": "https://static-cdn.jtvnw.net/previews-ttv/live_user_apocalypticsith-1280x720.jpg",
+      "startedAt": "2026-09-28T09:01:18Z",
+      "isLive": true,
+      "lastSeenAt": "2026-09-28T14:34:09.098Z",
+      "createdAt": "2026-09-28T14:22:15.491Z",
+      "updatedAt": "2026-09-28T14:34:09.098Z"
+    },
+    {
+      "id": "stream_1790605476770_yb8p",
+      "creatorId": "creator_tjsingh007",
+      "platformAccountId": "plat_twitch_tj_singh007",
+      "platform": "TWITCH",
+      "platformStreamId": "stream_test_9999",
+      "title": "TEST LIVESTREAM PIONEER RP",
+      "category": "Grand Theft Auto V",
+      "viewerCount": 1540,
+      "thumbnailUrl": "https://example.com/thumb.jpg",
+      "startedAt": "2026-09-28T14:24:36.769Z",
+      "isLive": false,
+      "lastSeenAt": "2026-09-28T14:24:36.770Z",
+      "createdAt": "2026-09-28T14:24:36.770Z",
+      "updatedAt": "2026-09-28T14:24:36.770Z",
+      "endedAt": "2026-09-28T14:24:36.770Z"
+    }
+  ],
+  "adminUsers": [
+    {
+      "id": "admin_tjsingh_01",
+      "email": "tjsingh@pioneerrp.live",
+      "username": "TJSINGH",
+      "role": "superadmin",
+      "passwordHash": "$2b$10$rjrcIV/fuAtcAVUZE/TJqucxq0CrM35XQYghY7WpCf3LsbB/8WkiW",
+      "createdAt": "2026-09-28T14:34:05.825Z",
+      "updatedAt": "2026-09-28T14:34:05.825Z"
+    },
+    {
+      "id": "admin_1790606066307_pwos",
+      "email": "test@pioneerrp.live",
+      "username": "OfficerTest",
+      "role": "admin",
+      "passwordHash": "$2b$10$oVBBE7guhFxgBHPyRJR10eAJsVCpALXnkORLhq84inwDl1MAksDX2",
+      "createdAt": "2026-09-28T14:34:26.307Z",
+      "updatedAt": "2026-09-28T14:34:26.307Z"
+    }
+  ],
+  "settings": {
+    "siteName": "Pioneer RP Live",
+    "siteTagline": "The city is live. Watch the stories unfold.",
+    "discordUrl": "https://discord.gg/pioneerrp",
+    "storeUrl": "https://pioneer-rp-18.tebex.io/",
+    "serverJoinUrl": "fivem://connect/cfx.re/join/pioneer-rp",
+    "serverStatusApiUrl": "",
+    "twitchPollingIntervalSeconds": "45",
+    "liveRefreshIntervalSeconds": "30",
+    "seoTitle": "Pioneer RP Live — Watch Pioneer RP Streamers",
+    "seoDescription": "The official streaming and creator hub for Pioneer RP. Real-time Twitch stream monitoring, featured creators, creator codes, and FiveM community directory.",
+    "heroHeadline": "PIONEER RP LIVE",
+    "heroSubheading": "The city is live. Watch the stories unfold.",
+    "lastSyncAt": "2026-09-28T14:34:09.098Z",
+    "syncStatus": "success",
+    "syncErrorMessage": "null"
+  },
+  "analyticsEvents": [
+    {
+      "id": "evt_1790598290687_4xg1",
+      "eventType": "watch_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "test": true
+      },
+      "createdAt": "2026-09-28T12:24:50.687Z"
+    },
+    {
+      "id": "evt_1790598290687_hj26",
+      "eventType": "creator_code_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "code": "INDIA"
+      },
+      "createdAt": "2026-09-28T12:24:50.687Z"
+    },
+    {
+      "id": "evt_1790598875026_3phw",
+      "eventType": "profile_view",
+      "creatorId": "creator_apocalypticsith",
+      "metadata": {
+        "slug": "apocalypticsith"
+      },
+      "createdAt": "2026-09-28T12:34:35.026Z"
+    },
+    {
+      "id": "evt_1790598875152_5oic",
+      "eventType": "profile_view",
+      "creatorId": "creator_apocalypticsith",
+      "metadata": {
+        "slug": "apocalypticsith"
+      },
+      "createdAt": "2026-09-28T12:34:35.152Z"
+    },
+    {
+      "id": "evt_1790603356644_cpdb",
+      "eventType": "watch_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "test": true
+      },
+      "createdAt": "2026-09-28T13:49:16.644Z"
+    },
+    {
+      "id": "evt_1790603356645_n0fx",
+      "eventType": "creator_code_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "code": "INDIA"
+      },
+      "createdAt": "2026-09-28T13:49:16.645Z"
+    },
+    {
+      "id": "evt_1790605476772_2g5e",
+      "eventType": "watch_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "test": true
+      },
+      "createdAt": "2026-09-28T14:24:36.772Z"
+    },
+    {
+      "id": "evt_1790605476772_o6ej",
+      "eventType": "creator_code_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "code": "INDIA"
+      },
+      "createdAt": "2026-09-28T14:24:36.772Z"
+    },
+    {
+      "id": "evt_1790605524837_s11j",
+      "eventType": "creator_code_click",
+      "creatorId": "creator_tjsingh007",
+      "metadata": {
+        "code": "INDIA"
+      },
+      "createdAt": "2026-09-28T14:25:24.837Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "audit_1790606066307_o6aq",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "tjsingh@pioneerrp.live",
+      "action": "CREATE_ADMIN_USER",
+      "entityType": "ADMIN_USER",
+      "entityId": "admin_1790606066307_pwos",
+      "metadata": {
+        "username": "OfficerTest",
+        "email": "test@pioneerrp.live",
+        "role": "admin"
+      },
+      "createdAt": "2026-09-28T14:34:26.307Z"
+    },
+    {
+      "id": "audit_1790606066184_x6ol",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "tjsingh@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-28T14:34:26.184Z"
+    },
+    {
+      "id": "audit_1790606058655_5xiv",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "tjsingh@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-28T14:34:18.655Z"
+    },
+    {
+      "id": "audit_1790606050920_5ofy",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "tjsingh@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_tjsingh_01",
+      "createdAt": "2026-09-28T14:34:10.920Z"
+    },
+    {
+      "id": "audit_1790605653776_ve0x",
+      "adminId": "admin_primary_01",
+      "adminEmail": "admin@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_primary_01",
+      "createdAt": "2026-09-28T14:27:33.776Z"
+    },
+    {
+      "id": "audit_1790605629281_sqt5",
+      "adminId": "admin_primary_01",
+      "adminEmail": "admin@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_primary_01",
+      "createdAt": "2026-09-28T14:27:09.281Z"
+    },
+    {
+      "id": "audit_1790598891086_z5ev",
+      "adminId": "admin_primary_01",
+      "adminEmail": "admin@pioneerrp.live",
+      "action": "ADMIN_LOGIN",
+      "entityType": "AUTH",
+      "entityId": "admin_primary_01",
+      "createdAt": "2026-09-28T12:34:51.086Z"
+    }
+  ]
+}

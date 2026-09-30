@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "creator": {
+      "title": "Creator",
+      "description": "Registered Pioneer RP content creator profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "displayName": { "type": "string", "description": "Streamer display name" },
+        "characterName": { "type": "string", "description": "In-city character name" },
+        "gangName": { "type": "string", "description": "Gang or faction affiliation" },
+        "bio": { "type": "string", "description": "Creator biography" },
+        "profileImageUrl": { "type": "string", "description": "Profile avatar URL" },
+        "bannerUrl": { "type": "string", "description": "Cover banner image URL" },
+        "featured": { "type": "boolean", "description": "Featured status" },
+        "featuredOrder": { "type": "number", "description": "Display order ranking" },
+        "creatorCode": { "type": "string", "description": "Tebex store coupon code" },
+        "creatorCodeDescription": { "type": "string", "description": "Description of code perks" },
+        "creatorStoreUrl": { "type": "string", "description": "Server store URL" },
+        "verified": { "type": "boolean", "description": "Pioneer RP verified status" },
+        "enabled": { "type": "boolean", "description": "Active in directory" },
+        "isPioneerStreamer": { "type": "boolean", "description": "Pioneer community member" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "slug", "displayName"]
+    },
+    "platformAccount": {
+      "title": "PlatformAccount",
+      "description": "External streaming platform account (Twitch)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "platform": { "type": "string", "enum": ["TWITCH", "KICK"] },
+        "platformUserId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "channelUrl": { "type": "string" },
+        "profileImageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "creatorId", "platform", "platformUserId", "username"]
+    },
+    "liveStream": {
+      "title": "LiveStream",
+      "description": "Active broadcast details and telemetry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "platformAccountId": { "type": "string" },
+        "platform": { "type": "string" },
+        "platformStreamId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "viewerCount": { "type": "number" },
+        "thumbnailUrl": { "type": "string" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "isLive": { "type": "boolean" },
+        "lastSeenAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "creatorId", "platformAccountId", "isLive"]
+    },
+    "siteSetting": {
+      "title": "SiteSetting",
+      "description": "Global application configuration parameter",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "value"]
+    }
+  },
+  "firestore": {
+    "/creators/{creatorId}": {
+      "schema": "creator",
+      "description": "Public directory of registered Pioneer RP streamers"
+    },
+    "/platform_accounts/{accountId}": {
+      "schema": "platformAccount",
+      "description": "Linked external streaming accounts"
+    },
+    "/live_streams/{streamId}": {
+      "schema": "liveStream",
+      "description": "Real-time broadcast status records"
+    },
+    "/settings/{settingKey}": {
+      "schema": "siteSetting",
+      "description": "System settings and telemetry configuration"
+    }
+  }
+}
