@@ -118,25 +118,52 @@ class DatabaseManager {
   private isPostgres = false;
   private saveTimeout: NodeJS.Timeout | null = null;
 
+  get storageMode(): 'postgres' | 'embedded' {
+    return this.isPostgres ? 'postgres' : 'embedded';
+  }
+
+  // When a database is configured (or we run serverless) but it is not connected,
+  // writing to the ephemeral embedded file would silently lose data. Refuse instead.
+  private assertPersistentWritable(): void {
+    const dbConfigured = Boolean(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
+    if (!this.isPostgres && (dbConfigured || process.env.VERCEL)) {
+      throw new Error(
+        'Administrator storage is unavailable: the configured database is not connected, so the change would not be saved. Verify DATABASE_URL on the deployment.'
+      );
+    }
+  }
+
   async init(): Promise<void> {
     const pgConnString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
     if (pgConnString) {
-      try {
-        const pool = new Pool({
-          connectionString: pgConnString,
-          ssl: pgConnString.includes('localhost') ? false : { rejectUnauthorized: false },
-          connectionTimeoutMillis: 4000,
-        });
-        const client = await pool.connect();
-        client.release();
-        this.pgPool = pool;
-        this.isPostgres = true;
-        console.log('[DB] Connected to PostgreSQL / Vercel Postgres instance.');
-        await this.initPostgresSchema();
-        await this.loadFromPostgres();
-      } catch (err: any) {
-        console.warn('[DB] PostgreSQL connection failed, falling back to embedded database:', err.message);
-        this.isPostgres = false;
+      const attempts = 3;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          const pool = new Pool({
+            connectionString: pgConnString,
+            ssl: pgConnString.includes('localhost') ? false : { rejectUnauthorized: false },
+            connectionTimeoutMillis: 10000,
+            max: 5,
+          });
+          const client = await pool.connect();
+          client.release();
+          this.pgPool = pool;
+          this.isPostgres = true;
+          console.log('[DB] Connected to PostgreSQL / Vercel Postgres instance.');
+          await this.initPostgresSchema();
+          await this.loadFromPostgres();
+          break;
+        } catch (err: any) {
+          console.warn(`[DB] PostgreSQL connection attempt ${attempt}/${attempts} failed:`, err.message);
+          this.isPostgres = false;
+          this.pgPool = null;
+          if (attempt < attempts) {
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+          }
+        }
+      }
+      if (!this.isPostgres) {
+        console.error('[DB] A database is configured but unreachable; persistent writes cannot be saved.');
       }
     }
 
@@ -461,6 +488,47 @@ class DatabaseManager {
     }
   }
 
+  private async refreshAdminsFromPostgres(): Promise<void> {
+    if (!this.pgPool) return;
+    try {
+      const adminsRes = await this.pgPool.query('SELECT * FROM admin_users');
+      if (adminsRes.rows.length > 0) {
+        this.memoryDb.adminUsers = adminsRes.rows.map((r: any) => ({
+          id: r.id,
+          email: r.email,
+          username: r.username,
+          passwordHash: r.password_hash,
+          role: r.role,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+    } catch (err: any) {
+      console.error('[DB] Failed refreshing administrators from Postgres:', err.message);
+    }
+  }
+
+  private async persistAdminToPostgres(admin: AdminUser & { passwordHash: string }): Promise<void> {
+    if (!this.pgPool) return;
+    const updated = await this.pgPool.query(
+      `UPDATE admin_users SET email = $2, username = $3, password_hash = $4, role = $5, updated_at = NOW() WHERE id = $1`,
+      [admin.id, admin.email, admin.username, admin.passwordHash, admin.role]
+    );
+    if (updated.rowCount === 0) {
+      await this.pgPool.query(
+        `INSERT INTO admin_users (id, email, username, password_hash, role)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (email) DO UPDATE SET username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, updated_at = NOW()`,
+        [admin.id, admin.email, admin.username, admin.passwordHash, admin.role]
+      );
+    }
+  }
+
+  private async deleteAdminFromPostgres(id: string): Promise<void> {
+    if (!this.pgPool) return;
+    await this.pgPool.query('DELETE FROM admin_users WHERE id = $1', [id]);
+  }
+
   private async seedInitialData() {
     // 1. Ensure primary superadmin with email "Trnjeet@gmail.com" / "TJSINGH" and password "Taran@&007"
     const hasAdmin = this.memoryDb.adminUsers.some(
@@ -500,6 +568,14 @@ class DatabaseManager {
         this.scheduleSave();
         console.log('[DB] Superadmin updated to Trnjeet@gmail.com / TJSINGH');
       }
+    }
+
+    // Persist the seeded superadmin so a fresh Postgres instance can authenticate
+    const seededSuperadmin = this.memoryDb.adminUsers.find(
+      a => a.email.toLowerCase() === 'trnjeet@gmail.com' || a.username.toLowerCase() === 'tjsingh'
+    );
+    if (seededSuperadmin && this.isPostgres) {
+      await this.persistAdminToPostgres(seededSuperadmin);
     }
 
     // 2. Seed initial creators if table is empty
@@ -1078,10 +1154,12 @@ class DatabaseManager {
 
   // --- ADMIN AUTH ---
   async getAdminByEmail(email: string): Promise<(AdminUser & { passwordHash: string }) | null> {
+    if (this.isPostgres) await this.refreshAdminsFromPostgres();
     return this.memoryDb.adminUsers.find(a => a.email.toLowerCase() === email.toLowerCase()) || null;
   }
 
   async getAdminByEmailOrUsername(identifier: string): Promise<(AdminUser & { passwordHash: string }) | null> {
+    if (this.isPostgres) await this.refreshAdminsFromPostgres();
     const clean = identifier.trim().toLowerCase();
     return this.memoryDb.adminUsers.find(
       a => a.email.toLowerCase() === clean || a.username.toLowerCase() === clean
@@ -1089,6 +1167,7 @@ class DatabaseManager {
   }
 
   async getAdminById(id: string): Promise<AdminUser | null> {
+    if (this.isPostgres) await this.refreshAdminsFromPostgres();
     const a = this.memoryDb.adminUsers.find(u => u.id === id);
     if (!a) return null;
     const { passwordHash, ...rest } = a;
@@ -1096,10 +1175,12 @@ class DatabaseManager {
   }
 
   async getAllAdmins(): Promise<AdminUser[]> {
+    if (this.isPostgres) await this.refreshAdminsFromPostgres();
     return this.memoryDb.adminUsers.map(({ passwordHash, ...rest }) => rest);
   }
 
   async createAdmin(email: string, username: string, passwordPlain: string, role: string = 'admin'): Promise<AdminUser> {
+    this.assertPersistentWritable();
     const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = username.trim();
     const existingEmail = this.memoryDb.adminUsers.find(a => a.email.toLowerCase() === cleanEmail);
@@ -1125,11 +1206,15 @@ class DatabaseManager {
     };
     this.memoryDb.adminUsers.push(newAdmin);
     this.scheduleSave();
+    if (this.isPostgres) {
+      await this.persistAdminToPostgres(newAdmin);
+    }
     const { passwordHash: _, ...publicAdmin } = newAdmin;
     return publicAdmin;
   }
 
   async deleteAdmin(id: string): Promise<boolean> {
+    this.assertPersistentWritable();
     const index = this.memoryDb.adminUsers.findIndex(a => a.id === id);
     if (index === -1) return false;
     if (this.memoryDb.adminUsers.length <= 1) {
@@ -1137,6 +1222,9 @@ class DatabaseManager {
     }
     this.memoryDb.adminUsers.splice(index, 1);
     this.scheduleSave();
+    if (this.isPostgres) {
+      await this.deleteAdminFromPostgres(id);
+    }
     return true;
   }
 
@@ -1307,6 +1395,13 @@ class DatabaseManager {
     }
     if (Array.isArray(importedData.adminUsers) && importedData.adminUsers.length > 0) {
       this.memoryDb.adminUsers = importedData.adminUsers;
+      if (this.isPostgres) {
+        for (const admin of this.memoryDb.adminUsers) {
+          if (admin.passwordHash) {
+            await this.persistAdminToPostgres(admin);
+          }
+        }
+      }
     }
     if (importedData.settings && typeof importedData.settings === 'object') {
       this.memoryDb.settings = { ...this.memoryDb.settings, ...importedData.settings };

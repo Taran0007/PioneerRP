@@ -55,6 +55,7 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
 router.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
+    storage: db.storageMode,
     uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   });
