@@ -191,6 +191,13 @@ export const ClipsPage: React.FC<ClipsPageProps> = ({ onNavigateHome }) => {
               >
                 {/* Thumbnail / Play Preview Box */}
                 <div className="relative aspect-video bg-neutral-950 overflow-hidden flex items-center justify-center">
+                  {clip.thumbnailUrl ? (
+                    <img
+                      src={clip.thumbnailUrl}
+                      alt={clip.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent z-10" />
 
                   {/* Play Button Icon */}
@@ -277,12 +284,31 @@ export const ClipsPage: React.FC<ClipsPageProps> = ({ onNavigateHome }) => {
 
             {/* Embedded Twitch Clip Iframe */}
             <div className="aspect-video w-full bg-black relative">
-              <iframe
-                src={`${activeClipModal.embedUrl}&parent=${window.location.hostname}&autoplay=true`}
-                className="w-full h-full border-0 absolute inset-0"
-                allowFullScreen
-                title={activeClipModal.title}
-              />
+              {(() => {
+                let clipSlug = '';
+                if ((activeClipModal as any).clipId) {
+                  clipSlug = (activeClipModal as any).clipId;
+                } else if (activeClipModal.clipUrl) {
+                  const match = activeClipModal.clipUrl.match(/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/) ||
+                                activeClipModal.clipUrl.match(/\/clip\/([A-Za-z0-9_-]+)/);
+                  if (match) clipSlug = match[1];
+                }
+
+                const srcUrl = clipSlug
+                  ? `https://clips.twitch.tv/embed?clip=${clipSlug}&parent=${window.location.hostname}&autoplay=true`
+                  : activeClipModal.embedUrl.includes('?')
+                    ? `${activeClipModal.embedUrl}&parent=${window.location.hostname}&autoplay=true`
+                    : `${activeClipModal.embedUrl}?parent=${window.location.hostname}&autoplay=true`;
+
+                return (
+                  <iframe
+                    src={srcUrl}
+                    className="w-full h-full border-0 absolute inset-0"
+                    allowFullScreen
+                    title={activeClipModal.title}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>

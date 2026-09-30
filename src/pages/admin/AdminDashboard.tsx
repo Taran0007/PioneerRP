@@ -20,7 +20,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onLogout,
   onNavigateHome,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'streamers' | 'live' | 'featured' | 'admins' | 'analytics' | 'clips' | 'settings' | 'audit' | 'mindmap'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'streamers' | 'live' | 'featured' | 'admins' | 'analytics' | 'clips' | 'applications' | 'settings' | 'audit' | 'mindmap'>('overview');
 
   // Overview data
   const [overview, setOverview] = useState<any>(null);
@@ -44,6 +44,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Community clips moderation state
   const [adminClips, setAdminClips] = useState<any[]>([]);
   const [loadingClips, setLoadingClips] = useState(false);
+
+  // Streamer applications state
+  const [streamerRequests, setStreamerRequests] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -324,10 +327,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleModerateStreamerRequest = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      const res = await api.adminModerateStreamerRequest(id, status);
+      showToast((res as any).message || `Application ${status.toLowerCase()} successfully!`);
+      await loadAllData();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to moderate application', 'error');
+    }
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [ovRes, crRes, setRes, anRes, audRes, liveRes, admRes, clRes] = await Promise.all([
+      const [ovRes, crRes, setRes, anRes, audRes, liveRes, admRes, clRes, reqRes] = await Promise.all([
         api.adminGetOverview(),
         api.adminGetStreamers(),
         api.adminGetSettings(),
@@ -336,6 +349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         api.adminGetLiveMonitor(),
         api.adminGetAdmins().catch(() => ({ data: [] })),
         api.adminGetClips().catch(() => ({ data: [] })),
+        api.adminGetStreamerRequests().catch(() => ({ data: [] })),
       ]);
 
       setOverview(ovRes.data);
@@ -350,6 +364,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       if (clRes?.data) {
         setAdminClips(clRes.data);
+      }
+      if (reqRes?.data) {
+        setStreamerRequests(reqRes.data);
       }
 
       const featured = crRes.data
@@ -748,6 +765,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('applications')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                activeTab === 'applications'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <UserPlus className="h-4 w-4 text-purple-400" />
+                <span>Streamer Requests</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-950/60 font-mono">
+                {streamerRequests.filter(r => r.status === 'PENDING').length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('audit')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
                 activeTab === 'audit'
@@ -794,6 +828,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {activeTab === 'admins' && 'Administrator Accounts'}
               {activeTab === 'analytics' && 'Interaction & Click Analytics'}
               {activeTab === 'clips' && 'Community Clips Moderation'}
+              {activeTab === 'applications' && 'Streamer Join Requests'}
               {activeTab === 'settings' && 'System & API Settings'}
               {activeTab === 'mindmap' && 'Architecture & Mindmap'}
               {activeTab === 'audit' && 'System Audit Trail'}
@@ -1997,6 +2032,134 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* TAB 9: ARCHITECTURE & PERSISTENT MINDMAP */}
         {activeTab === 'mindmap' && (
           <MindmapView />
+        )}
+
+        {/* TAB: STREAMER APPLICATIONS */}
+        {activeTab === 'applications' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-2">
+              <div>
+                <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide">
+                  Streamer Join Requests
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Review applications submitted by community creators requesting to join the official streamer hub.
+                </p>
+              </div>
+              <div className="text-xs font-mono text-purple-400 bg-purple-950/40 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+                {streamerRequests.length} Total Requests
+              </div>
+            </div>
+
+            {streamerRequests.length === 0 ? (
+              <div className="p-8 rounded-2xl border border-white/[0.08] bg-neutral-900/40 text-center space-y-2">
+                <UserPlus className="h-8 w-8 text-neutral-500 mx-auto" />
+                <h4 className="text-sm font-semibold text-neutral-300">No pending streamer applications</h4>
+                <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                  When visitors click "Join Streamers" on the public site and submit their details, they will appear here for admin approval.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/[0.08] bg-neutral-900/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-950/80 border-b border-white/[0.08] text-neutral-400 font-mono uppercase text-[11px]">
+                      <tr>
+                        <th className="py-3 px-4">Applicant / Twitch</th>
+                        <th className="py-3 px-4">Character & Faction</th>
+                        <th className="py-3 px-4">Bio / About</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.05]">
+                      {streamerRequests.map((req: any) => (
+                        <tr key={req.id} className="hover:bg-neutral-800/30 transition-colors">
+                          <td className="py-3.5 px-4 space-y-1">
+                            <div className="font-bold text-white font-mono">
+                              @{req.username}
+                            </div>
+                            <a
+                              href={`https://twitch.tv/${req.username}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-purple-400 hover:underline text-[11px] flex items-center gap-1 font-mono"
+                            >
+                              <span>twitch.tv/{req.username}</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </td>
+                          <td className="py-3.5 px-4 space-y-1">
+                            <div className="font-semibold text-neutral-200">
+                              {req.characterName}
+                            </div>
+                            <span className="inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/30">
+                              {req.faction}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-neutral-300 max-w-xs">
+                            <p className="line-clamp-2 leading-relaxed" title={req.bio}>
+                              {req.bio}
+                            </p>
+                            {req.creatorCode && (
+                              <div className="mt-1 text-[11px] font-mono text-purple-400">
+                                Code: <strong>{req.creatorCode}</strong>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5">
+                              {req.status === 'APPROVED' ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Approved & Listed
+                                </span>
+                              ) : req.status === 'REJECTED' ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-red-400">
+                                  <X className="h-3 w-3" />
+                                  Rejected
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-400 animate-pulse">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Pending Review
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {req.status !== 'APPROVED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleModerateStreamerRequest(req.id, 'APPROVED')}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-md shadow-emerald-600/20 flex items-center gap-1"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Approve & Add</span>
+                                </button>
+                              )}
+
+                              {req.status !== 'REJECTED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleModerateStreamerRequest(req.id, 'REJECTED')}
+                                  className="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-red-950/60 text-red-400 hover:text-red-200 border border-white/10 hover:border-red-500/30 text-xs font-semibold transition-colors flex items-center gap-1"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                  <span>Reject</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* TAB 10: AUDIT LOGS */}

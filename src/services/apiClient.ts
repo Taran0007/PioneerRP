@@ -313,6 +313,24 @@ class ApiClient {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete clip');
   }
+
+  // Admin Streamer Applications Moderation
+  async adminGetStreamerRequests(): Promise<{ data: any[]; total: number }> {
+    const res = await this.adminFetch('/admin/streamer-requests');
+    if (!res.ok) throw new Error('Failed to load streamer applications');
+    return res.json();
+  }
+
+  async adminModerateStreamerRequest(id: string, status: 'APPROVED' | 'REJECTED'): Promise<{ success: boolean; data: any }> {
+    const res = await this.adminFetch(`/admin/streamer-requests/${id}/moderate`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to moderate application');
+    return data;
+  }
 }
 
 export const api = new ApiClient();

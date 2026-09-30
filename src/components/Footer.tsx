@@ -18,11 +18,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
           {/* Brand Col */}
           <div className="space-y-4 md:col-span-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600/20 border border-purple-500/40 text-purple-400">
-                <Radio className="h-4 w-4" />
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 via-purple-600/20 to-neutral-900 border border-amber-500/30 p-1 shadow-md">
+                <img
+                  src="/pioneer-logo.png"
+                  alt="Pioneer RP Emblem"
+                  className="h-full w-full object-contain drop-shadow"
+                />
               </div>
               <span className="font-display text-base font-bold tracking-wider text-white">
-                PIONEER<span className="text-purple-400">RP</span> LIVE
+                PIONEER<span className="text-amber-400">RP</span> LIVE
               </span>
             </div>
             <p className="text-xs text-neutral-400 max-w-md leading-relaxed">

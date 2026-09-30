@@ -247,7 +247,7 @@ router.get('/vods', async (_req: Request, res: Response) => {
           }
 
           if (resolvedUserId && !resolvedUserId.startsWith('twitch_seed_')) {
-            twitchVods = await twitchService.getLatestVodsForUser(resolvedUserId, 2);
+            twitchVods = await twitchService.getLatestVodsForUser(resolvedUserId, 1);
           }
         } catch (err) {
           console.warn(`[API] Could not fetch real Twitch VODs for ${pa.username}:`, err);
@@ -259,14 +259,16 @@ router.get('/vods', async (_req: Request, res: Response) => {
         for (const tv of twitchVods) {
           vods.push({
             id: `vod_${tv.id}`,
+            vodId: tv.id,
             creatorId: c.id,
             creatorDisplayName: c.displayName,
             creatorSlug: c.slug,
             creatorProfileImage: c.profileImageUrl,
             characterName: c.characterName,
             gangName: c.gangName,
-            title: tv.title || `${c.displayName} - Twitch Broadcast`,
+            title: tv.title || `${c.displayName} - Past Broadcast`,
             url: tv.url || (pa ? pa.channelUrl + '/videos' : `https://twitch.tv/${c.slug}`),
+            embedUrl: `https://player.twitch.tv/?video=${tv.id}`,
             thumbnailUrl: (tv.thumbnail_url || '')
               .replace('%{width}', '1280')
               .replace('%{height}', '720')
@@ -279,8 +281,6 @@ router.get('/vods', async (_req: Request, res: Response) => {
           });
         }
       } else {
-        // Streamer does not have recorded VODs saved on Twitch (expired or disabled past broadcasts)
-        // DO NOT show fake views or fake demo titles!
         const channelUrl = pa ? pa.channelUrl : `https://twitch.tv/${c.slug}`;
         vods.push({
           id: `archive_channel_${c.id}`,
@@ -292,10 +292,11 @@ router.get('/vods', async (_req: Request, res: Response) => {
           gangName: c.gangName,
           title: `${c.displayName} — Twitch Channel Videos & Highlights`,
           url: `${channelUrl}/videos`,
+          embedUrl: `https://player.twitch.tv/?channel=${pa?.username || c.slug}`,
           thumbnailUrl: c.profileImageUrl,
           duration: 'Replay Archive',
           publishedAt: c.lastLiveAt || new Date().toISOString(),
-          viewCount: null, // Authentic: no fabricated view counts
+          viewCount: null,
           hasArchivedVod: false,
           isDirectChannelLink: true,
         });
@@ -308,16 +309,99 @@ router.get('/vods', async (_req: Request, res: Response) => {
   }
 });
 
-// GET /api/clips — Community highlight clips
+// GET /api/clips — Community & Auto-fetched Twitch Clips for each creator
 router.get('/clips', async (req: Request, res: Response) => {
   try {
     const { category, creatorId } = req.query;
-    const clips = await db.getClips({
+    const dbClips = await db.getClips({
       category: category as string,
       creatorId: creatorId as string,
       approvedOnly: true,
     });
-    res.json({ data: clips, total: clips.length });
+
+    const creators = await db.getCreators({ enabledOnly: true });
+    const autoClips: any[] = [];
+
+    // If Twitch is configured, fetch each streamer's latest clip automatically
+    if (twitchService.isConfigured()) {
+      for (const c of creators) {
+        if (creatorId && c.id !== creatorId) continue;
+        const pa = c.platformAccount;
+        if (!pa?.username) continue;
+
+        try {
+          let resolvedUserId = pa.platformUserId;
+          if (!resolvedUserId || resolvedUserId.startsWith('twitch_seed_')) {
+            const user = await twitchService.getUserByUsername(pa.username);
+            if (user?.id) {
+              resolvedUserId = user.id;
+              pa.platformUserId = user.id;
+            }
+          }
+
+          if (resolvedUserId && !resolvedUserId.startsWith('twitch_seed_')) {
+            const twitchClips = await twitchService.getLatestClipsForBroadcaster(resolvedUserId, 1);
+            if (twitchClips && twitchClips.length > 0) {
+              for (const tc of twitchClips) {
+                // Determine category heuristic
+                let autoCat: any = 'CHASE';
+                const lowerTitle = (tc.title || '').toLowerCase();
+                if (lowerTitle.includes('shoot') || lowerTitle.includes('gun') || lowerTitle.includes('10-99')) autoCat = 'GUNFIGHT';
+                else if (lowerTitle.includes('heist') || lowerTitle.includes('bank') || lowerTitle.includes('vault')) autoCat = 'HEIST';
+                else if (lowerTitle.includes('court') || lowerTitle.includes('arrest') || lowerTitle.includes('story')) autoCat = 'DRAMA';
+                else if (lowerTitle.includes('lol') || lowerTitle.includes('funny') || lowerTitle.includes('fail')) autoCat = 'COMEDY';
+
+                if (category && category !== 'ALL' && autoCat !== category) continue;
+
+                autoClips.push({
+                  id: `twitch_clip_${tc.id}`,
+                  clipId: tc.id,
+                  title: tc.title || `${c.displayName} - Roleplay Highlight`,
+                  clipUrl: tc.url,
+                  embedUrl: tc.embed_url || `https://clips.twitch.tv/embed?clip=${tc.id}`,
+                  thumbnailUrl: tc.thumbnail_url || c.profileImageUrl,
+                  creatorId: c.id,
+                  creatorName: c.displayName,
+                  creatorSlug: c.slug,
+                  creatorProfileImage: c.profileImageUrl,
+                  characterName: c.characterName,
+                  gangName: c.gangName,
+                  category: autoCat,
+                  submitterName: 'Official Stream Broadcast',
+                  upvotes: tc.view_count || 12,
+                  approved: true,
+                  featured: true,
+                  createdAt: tc.created_at || new Date().toISOString(),
+                  isTwitchClip: true,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`[API] Could not auto-fetch clip for ${pa?.username}:`, err);
+        }
+      }
+    }
+
+    // Merge auto-fetched clips with database community clips (avoiding duplicate URLs)
+    const clipUrlSet = new Set<string>();
+    const mergedClips: any[] = [];
+
+    for (const clip of autoClips) {
+      if (!clipUrlSet.has(clip.clipUrl)) {
+        clipUrlSet.add(clip.clipUrl);
+        mergedClips.push(clip);
+      }
+    }
+
+    for (const clip of dbClips) {
+      if (!clipUrlSet.has(clip.clipUrl)) {
+        clipUrlSet.add(clip.clipUrl);
+        mergedClips.push(clip);
+      }
+    }
+
+    res.json({ data: mergedClips, total: mergedClips.length });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to load community clips: ' + err.message });
   }
@@ -1271,6 +1355,67 @@ router.get('/admin/export/audit-logs.csv', requireAdmin, async (_req: Authentica
     res.send(csvContent);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to export audit logs CSV: ' + err.message });
+  }
+});
+
+// POST /api/streamer-requests/submit — Public stream application submission
+router.post('/streamer-requests/submit', async (req: Request, res: Response) => {
+  try {
+    const { username, characterName, faction, bio, creatorCode } = req.body;
+    if (!username || !characterName || !bio) {
+      return res.status(400).json({ error: 'Twitch username, character name, and bio are required.' });
+    }
+
+    const requestObj = await db.submitStreamerRequest({
+      username,
+      characterName,
+      faction,
+      bio,
+      creatorCode,
+    });
+
+    res.status(201).json({ success: true, message: 'Streamer application submitted successfully! An admin will review it soon.', data: requestObj });
+  } catch (err: any) {
+    res.status(400).json({ error: 'Failed submitting application: ' + err.message });
+  }
+});
+
+// GET /api/admin/streamer-requests — Admin get all streamer applications
+router.get('/admin/streamer-requests', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const requests = await db.getStreamerRequests();
+    res.json({ data: requests, total: requests.length });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load streamer applications: ' + err.message });
+  }
+});
+
+// PUT /api/admin/streamer-requests/:id/moderate — Admin approve or reject application
+router.put('/admin/streamer-requests/:id/moderate', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be APPROVED or REJECTED.' });
+    }
+
+    const updated = await db.moderateStreamerRequest(id, status);
+    if (!updated) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    db.logAudit({
+      adminId: req.adminUser!.id,
+      adminEmail: req.adminUser!.email,
+      action: status === 'APPROVED' ? 'APPROVE_STREAMER_REQUEST' : 'REJECT_STREAMER_REQUEST',
+      entityType: 'STREAMER_REQUEST',
+      entityId: id,
+      metadata: { username: updated.username, status },
+    }).catch(() => {});
+
+    res.json({ success: true, message: `Application ${status.toLowerCase()} successfully!`, data: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed moderating application: ' + err.message });
   }
 });
 

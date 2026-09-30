@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Radio, ShoppingBag, Shield, ExternalLink, Palette } from 'lucide-react';
+import { Menu, X, Radio, ShoppingBag, Shield, ExternalLink, Palette, UserPlus } from 'lucide-react';
 import { SiteSettings } from '../types/index.js';
 import { useTheme } from '../context/ThemeContext.js';
 
@@ -9,6 +9,7 @@ interface NavbarProps {
   settings: SiteSettings | null;
   adminUser: any;
   liveCount: number;
+  onOpenJoinModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   settings,
   adminUser,
   liveCount,
+  onOpenJoinModal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, cycleTheme } = useTheme();
@@ -51,11 +53,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2.5 text-left focus:outline-none group"
             aria-label="Pioneer RP Live Home"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-600/20 border border-purple-500/40 text-purple-400 group-hover:bg-purple-600/30 group-hover:border-purple-400 transition-colors">
-              <Radio className="h-4 w-4" />
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 via-purple-600/20 to-neutral-900 border border-amber-500/30 p-1 group-hover:border-amber-400/60 shadow-lg shadow-amber-950/30 transition-all">
+              <img
+                src="/pioneer-logo.png"
+                alt="Pioneer RP Emblem"
+                className="h-full w-full object-contain drop-shadow group-hover:scale-110 transition-transform duration-200"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
             <span className="font-display text-lg font-bold tracking-wider text-white group-hover:text-purple-300 transition-colors">
-              PIONEER<span className="text-purple-400">RP</span>
+              PIONEER<span className="text-amber-400">RP</span>
               <span className="ml-1 text-xs tracking-widest text-neutral-400 font-sans font-semibold">LIVE</span>
             </span>
           </button>
@@ -110,6 +119,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Shield className="h-3.5 w-3.5 text-purple-400" />
               <span>Admin</span>
+            </button>
+          )}
+
+          {onOpenJoinModal && (
+            <button
+              onClick={onOpenJoinModal}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-600/30 transition-all hover:scale-105"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>Join Streamers</span>
             </button>
           )}
 

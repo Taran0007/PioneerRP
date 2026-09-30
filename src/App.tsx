@@ -17,6 +17,7 @@ import { AboutPage } from './pages/AboutPage.js';
 import { FiveMStatusBar } from './components/FiveMStatusBar.js';
 import { AdminDashboard } from './pages/admin/AdminDashboard.js';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.js';
+import { JoinStreamerModal } from './components/JoinStreamerModal.js';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
@@ -29,6 +30,7 @@ export default function App() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [adminUser, setAdminUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   // Navigate handler that updates browser history
   const navigate = useCallback((path: string) => {
@@ -289,6 +291,7 @@ export default function App() {
             settings={settings}
             adminUser={adminUser}
             liveCount={liveCreators.length}
+            onOpenJoinModal={() => setShowJoinModal(true)}
           />
         </>
       )}
@@ -303,6 +306,12 @@ export default function App() {
           settings={settings}
         />
       )}
+
+      <JoinStreamerModal
+        isOpen={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

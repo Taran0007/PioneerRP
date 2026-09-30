@@ -1,3 +1,5 @@
+import { decrypt } from '../utils/encryption.js';
+
 export interface TwitchUserResult {
   id: string;
   login: string;
@@ -44,7 +46,7 @@ export class TwitchService {
           this.clientId = rawSettings.twitchClientId.trim();
         }
         if (rawSettings.twitchClientSecret && rawSettings.twitchClientSecret !== '••••••••••••••••') {
-          this.clientSecret = rawSettings.twitchClientSecret.trim();
+          this.clientSecret = decrypt(rawSettings.twitchClientSecret).trim();
         }
       }).catch(() => {});
     } catch {}
@@ -371,6 +373,32 @@ export class TwitchService {
   }
 
   /**
+   * Fetches the latest clips for a given Twitch broadcaster user ID
+   */
+  async getLatestClipsForBroadcaster(broadcasterId: string, limit = 1): Promise<any[]> {
+    if (!this.isConfigured() || !broadcasterId) return [];
+    try {
+      const token = await this.getAppAccessToken();
+      const res = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${encodeURIComponent(broadcasterId)}&first=${limit}`, {
+        headers: {
+          'Client-ID': this.clientId,
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn(`[TwitchService] Clips fetch failed (${res.status}): ${text}`);
+        return [];
+      }
+      const json = await res.json();
+      return json.data || [];
+    } catch (err) {
+      console.warn(`[TwitchService] Failed to fetch clips for broadcaster ${broadcasterId}:`, err);
+      return [];
+    }
+  }
+
+  /**
    * Fetches the latest past broadcast VODs for a given Twitch user ID
    */
   async getLatestVodsForUser(userId: string, limit = 1): Promise<any[]> {
@@ -383,7 +411,11 @@ export class TwitchService {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (!res.ok) return [];
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn(`[TwitchService] VODs fetch failed (${res.status}): ${text}`);
+        return [];
+      }
       const json = await res.json();
       return json.data || [];
     } catch (err) {

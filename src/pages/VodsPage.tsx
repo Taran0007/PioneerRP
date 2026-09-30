@@ -276,35 +276,39 @@ export const VodsPage: React.FC<VodsPageProps> = () => {
               </button>
             </div>
 
-            {/* Video Preview / Embed Card */}
-            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10 group">
-              <img
-                src={activeModalVod.thumbnailUrl}
-                alt={activeModalVod.title}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-neutral-950/50 flex flex-col items-center justify-center space-y-4 p-6 text-center">
-                <div className="h-16 w-16 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-2xl shadow-purple-600/50">
-                  <Play className="h-8 w-8 ml-1 fill-white" />
-                </div>
-                <div className="space-y-1">
-                  <div className="font-display font-extrabold text-white text-lg sm:text-xl">
-                    Full Broadcast on Twitch
-                  </div>
-                  <p className="text-xs text-neutral-300 max-w-md">
-                    Click below to open the complete uncut VOD replay with Twitch chat highlights and timestamps.
-                  </p>
-                </div>
-                <a
-                  href={activeModalVod.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-all inline-flex items-center gap-2"
-                >
-                  <span>Launch Broadcast on Twitch</span>
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
+            {/* Video Player / Live Twitch Embed */}
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10">
+              {(() => {
+                let vodId = activeModalVod.vodId;
+                if (!vodId && activeModalVod.url) {
+                  const match = activeModalVod.url.match(/videos\/(\d+)/);
+                  if (match) vodId = match[1];
+                }
+                if (!vodId && activeModalVod.id.startsWith('vod_')) {
+                  vodId = activeModalVod.id.replace('vod_', '');
+                }
+
+                if (vodId) {
+                  return (
+                    <iframe
+                      src={`https://player.twitch.tv/?video=${vodId}&parent=${window.location.hostname}&autoplay=true`}
+                      className="w-full h-full border-0 absolute inset-0"
+                      allowFullScreen
+                      title={activeModalVod.title}
+                    />
+                  );
+                }
+
+                const channelName = activeModalVod.creatorSlug || activeModalVod.creatorDisplayName;
+                return (
+                  <iframe
+                    src={`https://player.twitch.tv/?channel=${channelName}&parent=${window.location.hostname}&autoplay=true`}
+                    className="w-full h-full border-0 absolute inset-0"
+                    allowFullScreen
+                    title={activeModalVod.title}
+                  />
+                );
+              })()}
             </div>
 
             {/* Storyline Timestamp Bookmarks */}

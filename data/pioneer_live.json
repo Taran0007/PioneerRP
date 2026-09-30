@@ -201,7 +201,7 @@
       "email": "Trnjeet@gmail.com",
       "username": "TJSINGH",
       "role": "superadmin",
-      "passwordHash": "$2b$10$gnD6FHoO7kmc1pfqe7ksTehpDJj2XCS/nuivheg/WhuNtd65U99Ku",
+      "passwordHash": "$2b$10$lMNbdkRABbLnav3TQBzkWuPE0ace8XJPeyfhocHfwSN8iji16kMMW",
       "createdAt": "2026-09-28T14:34:05.825Z",
       "updatedAt": "2026-09-28T14:34:05.825Z"
     },
@@ -230,7 +230,7 @@
     "heroSubheading": "The city is live. Watch the stories unfold.",
     "twitchClientId": "y25p37qpoy7xwsqh2rgu8gw1mpiinz",
     "twitchClientSecret": "jx94wa1dfpd6n9n8ggvcniqa8yftvz",
-    "lastSyncAt": "2026-09-30T14:45:32.035Z",
+    "lastSyncAt": "2026-09-30T14:57:46.011Z",
     "syncStatus": "success",
     "syncErrorMessage": "null",
     "twitchClientIdConfigured": "true"
@@ -384,6 +384,22 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit_1790780205503_ag9p",
+      "adminId": "admin_tjsingh_01",
+      "adminEmail": "Trnjeet@gmail.com",
+      "action": "MANUAL_SYNC_TRIGGERED",
+      "entityType": "SYNC",
+      "entityId": "twitch",
+      "metadata": {
+        "timestamp": "2026-09-30T14:56:45.502Z",
+        "success": true,
+        "totalMonitoredAccounts": 4,
+        "liveDetected": 0,
+        "offlineMarked": 0
+      },
+      "createdAt": "2026-09-30T14:56:45.503Z"
+    },
     {
       "id": "audit_1790778810421_xcxz",
       "adminId": "admin_tjsingh_01",

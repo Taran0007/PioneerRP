@@ -39,6 +39,8 @@ export interface CreatorVOD {
   gangName?: string;
   title: string;
   url: string;
+  embedUrl?: string;
+  vodId?: string;
   thumbnailUrl: string;
   duration: string;
   publishedAt: string;
@@ -162,5 +164,16 @@ export interface CommunityClip {
   upvotes: number;
   approved: boolean;
   featured: boolean;
+  createdAt: string;
+}
+
+export interface StreamerRequest {
+  id: string;
+  username: string;
+  characterName: string;
+  faction: string;
+  bio: string;
+  creatorCode?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }

@@ -56,22 +56,33 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Content Frame */}
         <div className="relative z-10 mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 lg:px-8 space-y-6">
           {/* Ambient Live Ticker */}
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-neutral-900/80 border border-purple-500/30 backdrop-blur-md text-xs font-semibold text-neutral-300">
-            {liveCreators.length > 0 ? (
-              <>
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                </span>
-                <span className="text-white font-mono font-bold">{liveCreators.length}</span>
-                <span>PIONEER CREATOR{liveCreators.length > 1 ? 'S' : ''} BROADCASTING NOW</span>
-              </>
-            ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-purple-400" />
-                <span>OFFICIAL PIONEER RP CREATOR HUB</span>
-              </>
-            )}
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative group">
+              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-amber-500/50 via-purple-600/50 to-amber-500/50 blur-xl opacity-80 group-hover:opacity-100 transition duration-500"></div>
+              <img
+                src="/pioneer-logo.png"
+                alt="Pioneer RP Official Emblem"
+                className="relative h-24 w-24 sm:h-32 sm:w-32 object-contain drop-shadow-2xl mx-auto transform group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-neutral-900/80 border border-purple-500/30 backdrop-blur-md text-xs font-semibold text-neutral-300">
+              {liveCreators.length > 0 ? (
+                <>
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+                  <span className="text-white font-mono font-bold">{liveCreators.length}</span>
+                  <span>PIONEER CREATOR{liveCreators.length > 1 ? 'S' : ''} BROADCASTING NOW</span>
+                </>
+              ) : (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-purple-400" />
+                  <span>OFFICIAL PIONEER RP CREATOR HUB</span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Cinematic Headline */}

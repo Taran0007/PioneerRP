@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import pg from 'pg';
-import { Creator, PlatformAccount, LiveStream, AdminUser, SiteSettings, AuditLog, CommunityClip } from '../../src/types/index.js';
+import { Creator, PlatformAccount, LiveStream, AdminUser, SiteSettings, AuditLog, CommunityClip, StreamerRequest } from '../../src/types/index.js';
+import { encrypt, decrypt } from '../utils/encryption.js';
 
 const { Pool } = pg;
 
@@ -13,6 +14,7 @@ interface DatabaseSchema {
   adminUsers: (AdminUser & { passwordHash: string })[];
   settings: Record<string, string>;
   clips: CommunityClip[];
+  streamerRequests: StreamerRequest[];
   analyticsEvents: Array<{
     id: string;
     eventType: string;
@@ -107,6 +109,7 @@ class DatabaseManager {
     adminUsers: [],
     settings: { ...DEFAULT_SETTINGS },
     clips: [],
+    streamerRequests: [],
     analyticsEvents: [],
     auditLogs: [],
   };
@@ -130,6 +133,7 @@ class DatabaseManager {
         this.isPostgres = true;
         console.log('[DB] Connected to PostgreSQL / Vercel Postgres instance.');
         await this.initPostgresSchema();
+        await this.loadFromPostgres();
       } catch (err: any) {
         console.warn('[DB] PostgreSQL connection failed, falling back to embedded database:', err.message);
         this.isPostgres = false;
@@ -296,7 +300,165 @@ class DatabaseManager {
         metadata JSONB,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS clips (
+        id VARCHAR(64) PRIMARY KEY,
+        title TEXT NOT NULL,
+        clip_url TEXT NOT NULL,
+        embed_url TEXT NOT NULL,
+        creator_id VARCHAR(64),
+        creator_name VARCHAR(128),
+        category VARCHAR(64),
+        thumbnail_url TEXT,
+        submitter_name VARCHAR(128),
+        upvotes INT DEFAULT 1,
+        approved BOOLEAN DEFAULT TRUE,
+        featured BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS streamer_requests (
+        id VARCHAR(64) PRIMARY KEY,
+        username VARCHAR(128) NOT NULL,
+        character_name VARCHAR(128) NOT NULL,
+        faction VARCHAR(64) NOT NULL,
+        bio TEXT NOT NULL,
+        creator_code VARCHAR(64),
+        status VARCHAR(32) DEFAULT 'PENDING',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
+  }
+
+  private async loadFromPostgres() {
+    if (!this.pgPool) return;
+    try {
+      const settingsRes = await this.pgPool.query('SELECT key, value FROM settings');
+      const pgSettings: Record<string, string> = { ...DEFAULT_SETTINGS };
+      for (const row of settingsRes.rows) {
+        pgSettings[row.key] = row.value;
+      }
+      this.memoryDb.settings = pgSettings;
+
+      const creatorsRes = await this.pgPool.query('SELECT * FROM creators');
+      const accountsRes = await this.pgPool.query('SELECT * FROM platform_accounts');
+      const clipsRes = await this.pgPool.query('SELECT * FROM clips').catch(() => ({ rows: [] }));
+      const reqsRes = await this.pgPool.query('SELECT * FROM streamer_requests').catch(() => ({ rows: [] }));
+      const adminsRes = await this.pgPool.query('SELECT * FROM admin_users').catch(() => ({ rows: [] }));
+      const auditRes = await this.pgPool.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 500').catch(() => ({ rows: [] }));
+
+      if (creatorsRes.rows.length > 0) {
+        this.memoryDb.creators = creatorsRes.rows.map((r: any) => ({
+          id: r.id,
+          slug: r.slug,
+          displayName: r.display_name,
+          characterName: r.character_name,
+          gangName: r.gang_name,
+          bio: r.bio,
+          profileImageUrl: r.profile_image_url,
+          bannerUrl: r.banner_url,
+          featured: r.featured,
+          featuredOrder: r.featured_order,
+          creatorCode: r.creator_code,
+          creatorCodeDescription: r.creator_code_description,
+          creatorStoreUrl: r.creator_store_url,
+          verified: r.verified,
+          enabled: r.enabled,
+          isPioneerStreamer: r.is_pioneer_streamer,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+
+      if (accountsRes.rows.length > 0) {
+        this.memoryDb.platformAccounts = accountsRes.rows.map((r: any) => ({
+          id: r.id,
+          creatorId: r.creator_id,
+          platform: r.platform,
+          platformUserId: r.platform_user_id,
+          username: r.username,
+          displayName: r.display_name,
+          channelUrl: r.channel_url,
+          profileImageUrl: r.profile_image_url,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+
+      if (adminsRes.rows.length > 0) {
+        this.memoryDb.adminUsers = adminsRes.rows.map((r: any) => ({
+          id: r.id,
+          email: r.email,
+          username: r.username,
+          passwordHash: r.password_hash,
+          role: r.role,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+      }
+
+      if (clipsRes.rows.length > 0) {
+        this.memoryDb.clips = clipsRes.rows.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          clipUrl: r.clip_url,
+          embedUrl: r.embed_url,
+          creatorId: r.creator_id,
+          creatorName: r.creator_name,
+          category: r.category,
+          thumbnailUrl: r.thumbnail_url,
+          submitterName: r.submitter_name,
+          upvotes: r.upvotes,
+          approved: r.approved,
+          featured: r.featured,
+          createdAt: r.created_at,
+        }));
+      }
+
+      if (reqsRes.rows.length > 0) {
+        this.memoryDb.streamerRequests = reqsRes.rows.map((r: any) => ({
+          id: r.id,
+          username: r.username,
+          characterName: r.character_name,
+          faction: r.faction,
+          bio: r.bio,
+          creatorCode: r.creator_code,
+          status: r.status,
+          createdAt: r.created_at,
+        }));
+      }
+
+      if (auditRes.rows.length > 0) {
+        this.memoryDb.auditLogs = auditRes.rows.map((r: any) => ({
+          id: r.id,
+          adminId: r.admin_id,
+          adminEmail: r.admin_email,
+          action: r.action,
+          entityType: r.entity_type,
+          entityId: r.entity_id,
+          metadata: r.metadata,
+          createdAt: r.created_at,
+        }));
+      }
+
+      console.log(`[DB] Loaded ${this.memoryDb.creators.length} creators and settings from Supabase/PostgreSQL.`);
+    } catch (err) {
+      console.error('[DB] Failed loading from Postgres:', err);
+    }
+  }
+
+  private async saveToPostgres() {
+    if (!this.pgPool) return;
+    try {
+      for (const [k, v] of Object.entries(this.memoryDb.settings || {})) {
+        await this.pgPool.query(
+          `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+          [k, v]
+        );
+      }
+    } catch (err) {
+      console.error('[DB] Failed saving settings to Postgres:', err);
+    }
   }
 
   private async seedInitialData() {
@@ -526,6 +688,7 @@ class DatabaseManager {
     profileImageUrl?: string;
     characterName?: string;
     gangName?: string;
+    faction?: any;
     bio?: string;
     featured?: boolean;
     featuredOrder?: number;
@@ -790,7 +953,11 @@ class DatabaseManager {
         if (k === 'twitchClientSecret' && (v === '••••••••••••••••' || !v)) {
           continue;
         }
-        this.memoryDb.settings[k] = String(v);
+        if (k === 'twitchClientSecret') {
+          this.memoryDb.settings[k] = encrypt(String(v));
+        } else {
+          this.memoryDb.settings[k] = String(v);
+        }
       }
     }
     this.scheduleSave();
@@ -1050,6 +1217,76 @@ class DatabaseManager {
     Object.assign(clip, updates);
     this.scheduleSave();
     return clip;
+  }
+
+  // --- STREAMER REQUESTS ---
+  async getStreamerRequests(): Promise<StreamerRequest[]> {
+    this.memoryDb.streamerRequests = this.memoryDb.streamerRequests || [];
+    return [...this.memoryDb.streamerRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async submitStreamerRequest(data: {
+    username: string;
+    characterName: string;
+    faction: string;
+    bio: string;
+    creatorCode?: string;
+  }): Promise<StreamerRequest> {
+    this.memoryDb.streamerRequests = this.memoryDb.streamerRequests || [];
+    const reqId = `sreq_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const newReq: StreamerRequest = {
+      id: reqId,
+      username: data.username.trim().replace(/^@/, ''),
+      characterName: data.characterName.trim(),
+      faction: data.faction || 'CIVILIAN',
+      bio: data.bio.trim(),
+      creatorCode: data.creatorCode ? data.creatorCode.trim().toUpperCase() : undefined,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+    this.memoryDb.streamerRequests.unshift(newReq);
+    this.scheduleSave();
+
+    if (this.isPostgres && this.pgPool) {
+      this.pgPool.query(
+        `INSERT INTO streamer_requests (id, username, character_name, faction, bio, creator_code, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING`,
+        [newReq.id, newReq.username, newReq.characterName, newReq.faction, newReq.bio, newReq.creatorCode || null, newReq.status, newReq.createdAt]
+      ).catch(() => {});
+    }
+
+    return newReq;
+  }
+
+  async moderateStreamerRequest(id: string, status: 'APPROVED' | 'REJECTED'): Promise<StreamerRequest | null> {
+    this.memoryDb.streamerRequests = this.memoryDb.streamerRequests || [];
+    const req = this.memoryDb.streamerRequests.find(r => r.id === id);
+    if (!req) return null;
+    req.status = status;
+    this.scheduleSave();
+
+    if (this.isPostgres && this.pgPool) {
+      this.pgPool.query(`UPDATE streamer_requests SET status = $1 WHERE id = $2`, [status, id]).catch(() => {});
+    }
+
+    if (status === 'APPROVED') {
+      await this.createCreator({
+        username: req.username,
+        displayName: req.username,
+        platform: 'TWITCH',
+        platformUserId: `twitch_${req.username.toLowerCase()}`,
+        channelUrl: `https://twitch.tv/${req.username}`,
+        characterName: req.characterName,
+        faction: req.faction as any,
+        bio: req.bio,
+        creatorCode: req.creatorCode,
+        featured: false,
+        featuredOrder: 999,
+        verified: true,
+        enabled: true,
+      });
+    }
+
+    return req;
   }
 
   // --- DATABASE EXPORT / IMPORT (FOR VERCEL, LOCAL, OR CLOUD MIGRATIONS) ---
